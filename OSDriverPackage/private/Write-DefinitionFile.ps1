@@ -38,7 +38,7 @@ Function Write-DefinitionFile {
                 if ($Key -match "^Comment_[\d]+") {
                     $DefinitionFile.WriteLine($Definition[$Section][$Key])
                 } else {
-                    $DefinitionFile.WriteLine("$Key=$($Definition[$Section][$Key])")
+                    $DefinitionFile.WriteLine("$Key = $($Definition[$Section][$Key])")
                 }
             }
             $DefinitionFile.WriteLine()
