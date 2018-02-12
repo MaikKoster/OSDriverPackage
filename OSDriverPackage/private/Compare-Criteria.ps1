@@ -1,11 +1,14 @@
 function Compare-Criteria {
 
     [CmdletBinding()]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns')]
     param (
         [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
         [System.Collections.Specialized.OrderedDictionary]$Section,
         [string[]]$Filter,
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
         [string]$Include,
         [string]$Exclude
     )
@@ -45,6 +48,11 @@ function Compare-Criteria {
 
         # Validate against Exclude if a match was found.
         # Exclude overwrites everything.
+        if ([string]::IsNullOrEmpty($Exclude)) {
+            if (-Not([string]::IsNullOrEmpty($Exclude))) {
+                $Exclude = "Exclude$Include"
+            }
+        }
         if ($Section.Keys -contains "$Exclude" ) {
             $ExcludeValue = $Section["$Exclude"]
         } else {
