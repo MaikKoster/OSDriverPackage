@@ -1,10 +1,11 @@
-function Cleanup-NVidiaContent {
+function Remove-NVidiaContent {
     <#
     .SYNOPSIS
         Removes unnecessary NVidia files.
 
     .DESCRIPTION
         Removes unnecessary files from NVidia graphics driver package.
+        Don't use at the moment. Has been copied from original source.
 
     .NOTES
 
