@@ -39,7 +39,7 @@ function Remove-OSDriver {
         Write-Verbose "Start removing Driver '$Filename'."
 
         # Get Driver information
-        $DriverInfo = Get-OSDriverInfo -Filename $Filename
+        $DriverInfo = Get-OSDriver -Filename $Filename
         $DriverFileName = Split-Path -Path $Filename -Leaf
         $ParentPath = Split-Path -Path $Filename -Parent
 

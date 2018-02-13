@@ -1,4 +1,4 @@
-function Get-OSDriverInfo {
+function Get-OSDriver {
     <#
     .SYNOPSIS
         Returns information about the specified driver.
