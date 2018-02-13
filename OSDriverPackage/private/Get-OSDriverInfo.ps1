@@ -8,35 +8,30 @@ function Get-OSDriverInfo {
 
     #>
     [CmdletBinding()]
+    [OutputType([PSCustomObject])]
     param (
-        # Specifies the path where to search for driver files
-        [Parameter(Mandatory)]
+        # Specifies the name and path for driver files
+        [Parameter(Mandatory, ValueFromPipeline)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({Test-Path $_})]
-        [string]$Path,
-
-        # Specifies the name of the drivers files.
-        # The name can include wildcards. Default is '*.inf'
-        [string[]]$Files = '*.inf',
-
-        # Specifies if a gridview should be shown to select the driver files
-        [switch]$ShowGrid
-
+        [ValidateScript({(Test-Path $_) -and ((Get-Item $_).Extension -eq '.inf')})]
+        [Alias("Path")]
+        [string]$Filename
     )
 
     process {
-        $DriverFiles = Get-OSDriverFile -Path $Path -Files $Files -ShowGrid:$($ShowGrid.IsPresent)
+        Write-Verbose "Start getting Windows Driver info from '$Filename'"
+        $DriverFile = Get-Item -Pat $Filename
 
-        $DriverInfo = @()
-        foreach ($DriverFile in $DriverFiles) {
-            Write-Verbose "Getting Windows Driver info from '$($DriverFile.FullName)'"
-            $DriverInfo += Get-WindowsDriver -Online -Driver ($DriverFile.FullName)
+        #TODO: Get-WindowsDriver requires elevation! Might need to be replaced
+        $DriverInfo = Get-WindowsDriver -Online -Driver ($DriverFile.FullName)
+
+        # Get SourceDiskFiles
+        $DriverSourceFiles = Get-DriverSourceDiskFile -FileName $DriverFile
+        [PSCustomObject]@{
+            DriverFile = $DriverFile
+            DriverInfo = $DriverInfo
+            DriverSourceFiles = $DriverSourceFiles
         }
-
-        if ($ShowGrid.IsPresent) {
-            $DriverInfo = $DriverInfo | Select-Object HardwareId,HardwareDescription,Architecture,ProviderName,Version,Date,ClassName,BootCritical,DriverSignature,OriginalFileName | Out-Gridview -Title 'Get-OSDriverINFo Results' -PassThru
-        }
-
-        $DriverInfo
+        Write-Verbose "Finished reading Windows Driver info."
     }
 }

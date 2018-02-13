@@ -175,7 +175,8 @@ function New-OSDriverPackageDefinition {
                     Write-Verbose "  Searching for drivers."
                     $NewDefinition['WQL'] = [System.Collections.Specialized.OrderedDictionary]@{}
                     $NewDefinition['PNPIDS'] = [System.Collections.Specialized.OrderedDictionary]@{}
-                    Get-OSDriverInfo -Path $DriverPackagePath -ShowGrid:($ShowGrid.IsPresent) -Verbose:$false |
+                    Get-OSDriverInfo -Path $DriverPackagePath -Verbose:$false |
+                        Select-Object -ExpandProperty DriverInfo |
                         Select-Object -Property HardwareID,HardwareDescription -Unique |
                         Sort-Object -Property HardwareID | ForEach-Object {
                             $Count++
