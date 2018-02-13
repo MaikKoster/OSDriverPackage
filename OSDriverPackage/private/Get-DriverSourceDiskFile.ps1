@@ -19,6 +19,15 @@ function Get-DriverSourceDiskFile {
         [string]$FileName
     )
 
+    begin {
+        if (-not $PSBoundParameters.ContainsKey('Confirm')) {
+            $ConfirmPreference = $PSCmdlet.SessionState.PSVariable.GetValue('ConfirmPreference')
+        }
+        if (-not $PSBoundParameters.ContainsKey('WhatIf')) {
+            $WhatIfPreference = $PSCmdlet.SessionState.PSVariable.GetValue('WhatIfPreference')
+        }
+    }
+
     process {
         Write-Verbose "Start reading Driver File '$Filename'."
 

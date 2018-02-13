@@ -1,22 +1,31 @@
 function Get-OSDriverInfo {
     <#
     .SYNOPSIS
-        Finds specified driver files and returns all PNPIDs.
+        Returns information about the specified driver.
 
     .DESCRIPTION
-        Finds specified driver files and returns all PNPIDs.
+        Returns information about the specified driver and the related files.
 
     #>
     [CmdletBinding()]
     [OutputType([PSCustomObject])]
     param (
-        # Specifies the name and path for driver files
+        # Specifies the name and path for the driver file
         [Parameter(Mandatory, ValueFromPipeline)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({(Test-Path $_) -and ((Get-Item $_).Extension -eq '.inf')})]
         [Alias("Path")]
         [string]$Filename
     )
+
+    begin {
+        if (-not $PSBoundParameters.ContainsKey('Confirm')) {
+            $ConfirmPreference = $PSCmdlet.SessionState.PSVariable.GetValue('ConfirmPreference')
+        }
+        if (-not $PSBoundParameters.ContainsKey('WhatIf')) {
+            $WhatIfPreference = $PSCmdlet.SessionState.PSVariable.GetValue('WhatIfPreference')
+        }
+    }
 
     process {
         Write-Verbose "Start getting Windows Driver info from '$Filename'"
