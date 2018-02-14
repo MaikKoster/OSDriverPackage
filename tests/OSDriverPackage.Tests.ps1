@@ -86,7 +86,7 @@ Describe "Testfiles" {
     foreach ($File in (Get-ChildItem "$root\$ModuleName" -File "*.ps1" -Recurse)) {
 
         It "$($File.Name) has a corresponding Testfile." {
-            Get-ChildItem "$Root\test" -File -Filter "$($File.BaseName).Tests.ps1"
+            Get-ChildItem "$Root\tests" -File -Filter "$($File.BaseName).Tests.ps1" | Should Not BeNullOrEmpty
         }
     }
 }

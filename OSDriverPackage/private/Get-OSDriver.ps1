@@ -11,10 +11,10 @@ function Get-OSDriver {
     [OutputType([PSCustomObject])]
     param (
         # Specifies the name and path for the driver file
-        [Parameter(Mandatory, ValueFromPipeline)]
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({(Test-Path $_) -and ((Get-Item $_).Extension -eq '.inf')})]
-        [Alias("Path")]
+        [Alias("Fullname")]
         [string]$Filename
     )
 
@@ -43,4 +43,6 @@ function Get-OSDriver {
         }
         Write-Verbose "Finished reading Windows Driver info."
     }
+
+
 }
