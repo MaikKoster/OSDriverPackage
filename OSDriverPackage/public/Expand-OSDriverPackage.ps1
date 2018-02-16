@@ -38,18 +38,22 @@ function Expand-OSDriverPackage {
         if (-not $PSBoundParameters.ContainsKey('WhatIf')) {
             $WhatIfPreference = $PSCmdlet.SessionState.PSVariable.GetValue('WhatIfPreference')
         }
+
         Write-Verbose "Start expanding Driver Package."
+        if (-Not([string]::IsNullOrEmpty($DestinationPath))) {
+            $ArchiveDestinationPath = $DestinationPath
+        }
     }
 
     process {
-        foreach ($Archive in $Filename){
+        foreach ($Archive in $Path){
             Write-Verbose "  Expanding Driver Package '$Archive'."
             $ArchiveName = (Get-Item $Archive).BaseName
             $ArchivePath = (Get-Item $Archive).FullName
             if ([string]::IsNullOrEmpty($DestinationPath)) {
-                $DestinationPath = Split-Path $ArchivePath -Parent
+                $ArchiveDestinationPath = Split-Path $ArchivePath -Parent
             }
-            $ArchiveDestination = Join-Path -Path $DestinationPath -ChildPath $ArchiveName
+            $ArchiveDestination = Join-Path -Path $ArchiveDestinationPath -ChildPath $ArchiveName
 
             if (Test-Path $ArchiveDestination) {
                 if (-not($Force.IsPresent)) {
@@ -57,7 +61,7 @@ function Expand-OSDriverPackage {
                 }
             } else {
                 if ($PSCmdlet.ShouldProcess("Creating folder '$ArchiveDestination'.")) {
-                    $null = New-Item -Path $DestinationPath -Name $ArchiveName -ItemType Directory
+                    $null = New-Item -Path $ArchiveDestinationPath -Name $ArchiveName -ItemType Directory
                 }
             }
 
