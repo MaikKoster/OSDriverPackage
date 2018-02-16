@@ -29,18 +29,22 @@ function Get-OSDriver {
     }
 
     process {
-        Write-Verbose "  Getting Windows Driver info from '$Path'"
-        $DriverFile = Get-Item -Pat $Path
+        if ((Split-Path -Path $Path -Leaf) -eq 'autorun.inf') {
+            Write-Verbose "  Skipping '$Path'."
+        } else {
+            Write-Verbose "  Getting Windows Driver info from '$Path'"
+            $DriverFile = Get-Item -Pat $Path
 
-        #TODO: Get-WindowsDriver requires elevation! Might need to be replaced
-        $DriverInfo = Get-WindowsDriver -Online -Driver ($DriverFile.FullName)
+            #TODO: Get-WindowsDriver requires elevation! Might need to be replaced
+            $DriverInfo = Get-WindowsDriver -Online -Driver ($DriverFile.FullName)
 
-        # Get SourceDiskFiles
-        $DriverSourceFiles = Get-DriverSourceDiskFile -Path $DriverFile
-        [PSCustomObject]@{
-            DriverFile = $DriverFile
-            DriverInfo = $DriverInfo
-            DriverSourceFiles = $DriverSourceFiles
+            # Get SourceDiskFiles
+            $DriverSourceFiles = Get-DriverSourceDiskFile -Path $DriverFile
+            [PSCustomObject]@{
+                DriverFile = $DriverFile
+                DriverInfo = $DriverInfo
+                DriverSourceFiles = $DriverSourceFiles
+            }
         }
     }
 
