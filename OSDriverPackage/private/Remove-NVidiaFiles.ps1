@@ -13,10 +13,10 @@ function Remove-NVidiaContent {
     [CmdletBinding(SupportsShouldProcess)]
     param (
         # Specifies the name and path of folder that contains the NVidia driver files
-        [Parameter(Mandatory, ValueFromPipeline)]
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
-        [Alias("Path")]
-        [string[]]$FolderPath
+        [Alias("FullName")]
+        [string[]]$Path
     )
 
     begin{
@@ -48,7 +48,7 @@ function Remove-NVidiaContent {
     }
 
     process {
-        foreach ($Folder in $Folderpath) {
+        foreach ($Folder in $Path) {
             ForEach ($NVidiaFolder in $NVidiaFolders) {
                 if ($PSCmdlet.ShouldProcess("Removing folder '$NVidiaFolder'.")) {
                     Remove-Item -Path $Folder -Include $NVidiaFolder -Recurse

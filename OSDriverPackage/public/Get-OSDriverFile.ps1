@@ -11,9 +11,10 @@ function Get-OSDriverFile {
     [CmdletBinding(SupportsShouldProcess)]
     param (
         # Specifies the path where to search for driver files
-        [Parameter(Mandatory, ValueFromPipeline)]
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({Test-Path $_})]
+        [Alias("FullName")]
         [string]$Path,
 
         # Specifies the name of the drivers files.
@@ -40,10 +41,11 @@ function Get-OSDriverFile {
         if (-not $PSBoundParameters.ContainsKey('WhatIf')) {
             $WhatIfPreference = $PSCmdlet.SessionState.PSVariable.GetValue('WhatIfPreference')
         }
+        Write-Verbose "Start getting Driver Files."
     }
 
     process {
-        Write-Verbose "Start getting Driver Files from '$Path'."
+        Write-Verbose "  Getting Driver files from '$Path'."
 
         $DriverPackage = Get-Item -Path $Path
         $DriverFiles = @()
@@ -56,9 +58,9 @@ function Get-OSDriverFile {
 
         } elseif ($DriverPackage.Extension -eq '.cab') {
             if ($Expand.IsPresent) {
-                Write-Verbose '  Temporarily expanding content of Driver Package.'
+                Write-Verbose '    Temporarily expanding content of Driver Package.'
                 #$ArchivePath = Join-Path -Path (Split-Path -Path $Path -Parent) -ChildPath ($DriverPackage.BaseName)
-                $ExpandedPath = Expand-OSDriverPackage -FileName $Path -Force -PassThru
+                $ExpandedPath = Expand-OSDriverPackage -Path $Path -Force -PassThru
                 $ExpandedArchive = $true
 
                 $DriverFiles = Get-ChildItem -Path $ExpandedPath -Recurse -File -Include $Files
@@ -68,7 +70,7 @@ function Get-OSDriverFile {
                 }
 
             } else {
-                Write-Verbose '  Reading files from Driver Package.'
+                Write-Verbose '    Reading files from Driver Package.'
                 $Output = EXPAND -D "$Path" -F:"$Files"
                 #TODO: get someone with better Regex skills. Need to skip ': ' from the negative lookahead
                 switch -Regex ($Output) {
@@ -91,25 +93,26 @@ function Get-OSDriverFile {
                 # Folder could have been removed already
                 if (Test-Path $DriverFolder){
                     if ($PSCmdlet.ShouldProcess("Removing folder '$DriverFolder'.")) {
-                        Write-Verbose "  Removing folder '$DriverFolder'."
+                        Write-Verbose "    Removing folder '$DriverFolder'."
                         Remove-Item -Path $DriverFolder -Recurse -Force
                     }
                 }
             }
 
             if ($ExpandedArchive) {
-                Write-Verbose "  Compressing Driver Package again."
+                Write-Verbose "    Compressing Driver Package again."
                 Compress-Folder -Path $ExpandedPath -HighCompression -RemoveSource
             }
         } else {
             if ($ExpandedArchive) {
-                Write-Verbose "  Removing temporary Driver Package content."
+                Write-Verbose "    Removing temporary Driver Package content."
                 Remove-Item -Path $ExpandedPath -Recurse -Force
             }
 
             $DriverFiles
         }
-
+    }
+    end {
         Write-Verbose "Finished getting Driver Files."
     }
 }

@@ -12,18 +12,20 @@ function Read-DefinitionFile {
     [OutputType([System.Collections.Specialized.OrderedDictionary])]
     param(
         # Specifies the name and path to the Driver Package Definition file.
-        [Parameter(Mandatory, ValueFromPipeline)]
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({Test-Path $_})]
-        [Alias("Path")]
-        [string]$FileName
+        [Alias("FullName")]
+        [string]$Path
     )
-
+    begin {
+        Write-Verbose "Start reading Definition File."
+    }
     process {
-        Write-Verbose "Start reading Definition File '$Filename'."
+        Write-Verbose "  Reading Definition File '$Path'."
 
         $Definition = [System.Collections.Specialized.OrderedDictionary]@{}
-        switch -Regex (Get-Content $FileName) {
+        switch -Regex (Get-Content $Path) {
             "^\[(.+)\]$"  {
                 # Section
                 $Section = $Matches[1]
@@ -56,9 +58,10 @@ function Read-DefinitionFile {
         if ($Definition.Keys -contains 'OSDrivers') {
             $Definition
         } else {
-            Write-Verbose "No valid Definition file. Missing 'OSDrivers' section in file '$Filename'."
+            Write-Verbose "  No valid Definition file. Missing 'OSDrivers' section in file '$Path'."
         }
-
+    }
+    end {
         Write-Verbose "Finished reading Definition File."
     }
 }

@@ -17,16 +17,17 @@ Function Write-DefinitionFile {
         # Specifies the name and path of the Definition file.
         [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
-        [string]$FileName
+        [Alias("FullName")]
+        [string]$Path
     )
 
     process {
-        Write-Verbose "Start writing Definition File '$Filename'."
-        if (Test-Path $FileName) {
-            Remove-Item -Path $FileName -Force
+        Write-Verbose "Start writing Definition File '$Path'."
+        if (Test-Path $Path) {
+            Remove-Item -Path $Path -Force
         }
 
-        $DefinitionFile = New-Object System.IO.StreamWriter $FileName
+        $DefinitionFile = New-Object System.IO.StreamWriter $Path
         if ($null -eq $DefinitionFile) {
             Write-Error "Could not create Driver Package Definition file"
         }

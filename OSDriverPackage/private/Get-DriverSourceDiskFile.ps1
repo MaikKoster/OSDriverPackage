@@ -12,11 +12,11 @@ function Get-DriverSourceDiskFile {
     [OutputType([string[]])]
     param(
         # Specifies the name and path to the Driver file (inf).
-        [Parameter(Mandatory, ValueFromPipeline)]
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({(Test-Path $_) -and ((Get-Item $_).Extension -eq '.inf')})]
-        [Alias("Path")]
-        [string]$FileName
+        [Alias("FullName")]
+        [string]$Path
     )
 
     begin {
@@ -26,20 +26,21 @@ function Get-DriverSourceDiskFile {
         if (-not $PSBoundParameters.ContainsKey('WhatIf')) {
             $WhatIfPreference = $PSCmdlet.SessionState.PSVariable.GetValue('WhatIfPreference')
         }
+        Write-Verbose "Start reading Driver File."
     }
 
     process {
-        Write-Verbose "Start reading Driver File '$Filename'."
+        Write-Verbose "  Reading Driver File '$Path'."
 
         $SourceDiskFiles = [string[]]@()
         # Add inf and cat file to the list of SourceDiskFiless
-        $SourceDiskFiles += (Split-Path -Path $FileName -Leaf)
-        switch -Regex (Get-Content $FileName) {
+        $SourceDiskFiles += (Split-Path -Path $Path -Leaf)
+        switch -Regex (Get-Content $Path) {
             "^\[(.+)\]$"  {
                 # Section
                 $Section = $Matches[1]
                 if ($Section -eq 'SourceDisksFiles') {
-                    Write-Verbose "  Reading Section: [$Section]"
+                    Write-Verbose "    Reading Section: [$Section]"
                     $Found = $true
                 }
             }
@@ -53,7 +54,7 @@ function Get-DriverSourceDiskFile {
                 }
                 if ($Found) {
                     if ($Section -eq 'SourceDisksFiles') {
-                        Write-Verbose "  $($Matches[1])"
+                        Write-Verbose "    $($Matches[1])"
                         $SourceDiskFiles += $Matches[1]
                     } else {
                         Break
@@ -63,7 +64,8 @@ function Get-DriverSourceDiskFile {
         }
 
         $SourceDiskFiles
-
+    }
+    end {
         Write-Verbose "Finished reading Driver File."
     }
 }

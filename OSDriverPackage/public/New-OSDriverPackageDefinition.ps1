@@ -217,12 +217,12 @@ function New-OSDriverPackageDefinition {
         if (-Not(Test-Path $FileName) ) {
             if ($PSCmdlet.ShouldProcess("Saving driver package definition file '$FileName'.")) {
                 Write-Verbose "  Saving Driver Package Definition file '$FileName'."
-                Write-DefinitionFile -Definition $NewDefinition -FileName $FileName
+                Write-DefinitionFile -Definition $NewDefinition -Path $FileName
             }
         } elseif ((Test-Path $FileName) -and ($Force.IsPresent)) {
             if ($PSCmdlet.ShouldProcess("Overwriting existing driver package definition file '$FileName'.")) {
                 Write-Verbose "  Overwriting existing Driver Package Definition file '$FileName'."
-                Write-DefinitionFile -Definition $NewDefinition -FileName $FileName
+                Write-DefinitionFile -Definition $NewDefinition -Path $FileName
             }
         } else {
             throw "Driver Package Definition File '$Filename' exists and '-Force' is not specified."

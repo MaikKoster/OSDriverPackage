@@ -7,6 +7,7 @@ function Compare-Criteria {
         [ValidateNotNullOrEmpty()]
         [System.Collections.Specialized.OrderedDictionary]$Section,
         [string[]]$Filter,
+
         [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
         [string]$Include,

@@ -31,6 +31,7 @@ Function Compare-OSDriver {
         [Alias("Driver")]
         [PSCustomObject]$PackageDriver,
 
+
         # Specifies, if the Package Driver should be returned.
         # Helpful if used within a pipeline.
         [switch]$PassThru
@@ -42,11 +43,11 @@ Function Compare-OSDriver {
         $CoreVersion = New-Object System.Version ($CoreDriver.DriverInfo | Select-Object -First 1 -ExpandProperty Version)
         Write-Verbose " Core Version: $CoreVersion"
         $CorePNPIDS = ($CoreDriver.DriverInfo | Select-Object -ExpandProperty HardwareID -Unique)
-
     }
 
     process {
         $Replace = $false
+
         Write-Verbose "  Pkg Driver : $($PackageDriver.DriverFile)"
         $DriverVersion = New-Object System.Version ($PackageDriver.DriverInfo | Select-Object -First 1 -ExpandProperty Version)
         Write-Verbose "  Pkg Version: $DriverVersion"
@@ -69,6 +70,8 @@ Function Compare-OSDriver {
                     $MissingPNPIDs += $PnPID
                     Write-Verbose "    PNPID '$PnPID' is not supported by Core Driver. Keep Package Driver."
                     $Replace = $false
+                } else {
+                    Write-Verbose "    PNPID '$PnPID' is supported by Core Driver."
                 }
             }
             if ($Replace) {

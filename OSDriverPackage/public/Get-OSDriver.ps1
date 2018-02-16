@@ -14,8 +14,8 @@ function Get-OSDriver {
         [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({(Test-Path $_) -and ((Get-Item $_).Extension -eq '.inf')})]
-        [Alias("Fullname")]
-        [string]$Filename
+        [Alias("FullName")]
+        [string]$Path
     )
 
     begin {
@@ -25,24 +25,27 @@ function Get-OSDriver {
         if (-not $PSBoundParameters.ContainsKey('WhatIf')) {
             $WhatIfPreference = $PSCmdlet.SessionState.PSVariable.GetValue('WhatIfPreference')
         }
+        Write-Verbose "Start getting Windows Driver info."
     }
 
     process {
-        Write-Verbose "Start getting Windows Driver info from '$Filename'"
-        $DriverFile = Get-Item -Pat $Filename
+        Write-Verbose "  Getting Windows Driver info from '$Path'"
+        $DriverFile = Get-Item -Pat $Path
 
         #TODO: Get-WindowsDriver requires elevation! Might need to be replaced
         $DriverInfo = Get-WindowsDriver -Online -Driver ($DriverFile.FullName)
 
         # Get SourceDiskFiles
-        $DriverSourceFiles = Get-DriverSourceDiskFile -FileName $DriverFile
+        $DriverSourceFiles = Get-DriverSourceDiskFile -Path $DriverFile
         [PSCustomObject]@{
             DriverFile = $DriverFile
             DriverInfo = $DriverInfo
             DriverSourceFiles = $DriverSourceFiles
         }
-        Write-Verbose "Finished reading Windows Driver info."
     }
 
+    end {
+        Write-Verbose "Finished reading Windows Driver info."
+    }
 
 }

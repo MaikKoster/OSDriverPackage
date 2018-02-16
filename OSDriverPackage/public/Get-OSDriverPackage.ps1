@@ -16,9 +16,10 @@ function Get-OSDriverPackage {
         # Specifies the path to the Driver Package.
         # If a folder is specified, all Driver Packages within that folder and subfolders
         # will be returned, based on the additional conditions
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({Test-Path $_})]
+        [Alias("FullName")]
         [string]$Path,
 
         # Filters the Driver Packages by Name
@@ -52,10 +53,11 @@ function Get-OSDriverPackage {
         if (-not $PSBoundParameters.ContainsKey('WhatIf')) {
             $WhatIfPreference = $PSCmdlet.SessionState.PSVariable.GetValue('WhatIfPreference')
         }
+        Write-Verbose "Start getting Driver Package."
     }
 
     process {
-        Write-Verbose "Start getting Driver Package."
+        Write-Verbose "  Processing path '$Path'."
 
         # Generic logic
         $Root = Get-Item -Path $Path
@@ -64,7 +66,7 @@ function Get-OSDriverPackage {
         if ($Root.Extension -eq '.cab') {
             # Single Driver Package
             # TODO: Apply further filtering?
-            $Definition = Get-OSDriverPackageDefinition -Filename ($Root.FullName -replace '.cab', '.txt')
+            $Definition = Get-OSDriverPackageDefinition -Path ($Root.FullName -replace '.cab', '.txt')
 
             $DriverPackages += [PSCustomObject]@{
                     DriverPackage = ($Root.FullName)
@@ -72,17 +74,17 @@ function Get-OSDriverPackage {
                     Definition = $Definition
                 }
         } elseif ($Root.Extension -eq '.txt') {
-            $Definition = Get-OSDriverPackageDefinition -Filename ($Root.FullName)
+            $Definition = Get-OSDriverPackageDefinition -Path ($Root.FullName)
             if ($Definition['OSDrivers'].Keys -contains 'Source') {
                 $DriverPackage = Join-Path -Path ($Root.Directory.FullName) -ChildPath ($Definition['OSDrivers']['Source'])
-                Write-Verbose "  Definition file contains 'Source' key with value '$($Definition['OSDrivers']['Source'])'."
+                Write-Verbose "    Definition file contains 'Source' key with value '$($Definition['OSDrivers']['Source'])'."
                 if (-Not(Test-Path $DriverPackage)) {
                     $DriverPackage = $Root.FullName -replace '.txt', '.cab'
-                    Write-Verbose "  Driver Package defined in 'Source' key doesn't exist. Using '$DriverPackage'"
+                    Write-Verbose "    Driver Package defined in 'Source' key doesn't exist. Using '$DriverPackage'"
                     if (-Not(Test-Path $DriverPackage)) {
                         $DriverPackageFolder = ($Root.FullName -replace '.txt', '')
                         if (Test-Path $DriverPackageFolder) {
-                            Write-Verbose "  Driver Package hasn't been created yet. Creating new Driver Package based on folder '$DriverPackageFolder'."
+                            Write-Verbose "    Driver Package hasn't been created yet. Creating new Driver Package based on folder '$DriverPackageFolder'."
                             Compress-Folder -FolderPath $DriverPackageFolder -HighCompression
                         }
                     }
@@ -97,25 +99,25 @@ function Get-OSDriverPackage {
                     Definition = $Definition
                 }
             } else {
-                Write-Verbose "  Driver Package '$DriverPackage' doesn't exist. Skipping file."
+                Write-Verbose "    Driver Package '$DriverPackage' doesn't exist. Skipping file."
             }
         } else {
             # Get initial list of Driver Packages filter by Name
             Get-ChildItem -Path $Path -Include $Name -Recurse -File -Filter '*.txt' | ForEach-Object {
                 if (Test-Path $_.FullName) {
-                    $Definition = Get-OSDriverPackageDefinition -Filename ($_.FullName)
+                    $Definition = Get-OSDriverPackageDefinition -Path ($_.FullName)
                     if ($null -ne $Definition) {
                         if ($Definition['OSDrivers'].Keys -contains 'Source') {
                             $DriverPackage = Join-Path -Path ($_.Directory.FullName) -ChildPath ($Definition['OSDrivers']['Source'])
-                            Write-Verbose "  Definition file contains 'Source' key with value '$($Definition['OSDrivers']['Source'])'."
+                            Write-Verbose "    Definition file contains 'Source' key with value '$($Definition['OSDrivers']['Source'])'."
                             if (-Not(Test-Path $DriverPackage)) {
                                 $DriverPackage = $_.FullName -replace '.cab', '.txt'
-                                Write-Verbose "  Driver Package defined in 'Source' key doesn't exist. Using '$DriverPackage'"
+                                Write-Verbose "    Driver Package defined in 'Source' key doesn't exist. Using '$DriverPackage'"
 
                                 if (-Not(Test-Path $DriverPackage)) {
                                     $DriverPackageFolder = ($_.FullName -replace '.txt', '')
                                     if (Test-Path $DriverPackageFolder) {
-                                        Write-Verbose "  Driver Package hasn't been created yet. Creating new Driver Package based on folder '$DriverPackageFolder'."
+                                        Write-Verbose "    Driver Package hasn't been created yet. Creating new Driver Package based on folder '$DriverPackageFolder'."
                                         Compress-Folder -FolderPath $DriverPackageFolder -HighCompression
                                     }
                                 }
@@ -130,21 +132,21 @@ function Get-OSDriverPackage {
                                 Definition = $Definition
                             }
                         } else {
-                            Write-Verbose "  Driver Package '$DriverPackage' doesn't exist. Skipping file."
+                            Write-Verbose "    Driver Package '$DriverPackage' doesn't exist. Skipping file."
                         }
                     }
                 }
             }
         }
 
-        Write-Verbose "Validating Driver Packages against supplied criteria."
+        Write-Verbose "  Validating Driver Packages against supplied criteria."
         $Result = @()
         foreach ($DriverPackage in $DriverPackages) {
             $DriverPackageName = $DriverPackage.DriverPackage
-            Write-Verbose "  Validating '$DriverPackageName'."
+            Write-Verbose "    Validating '$DriverPackageName'."
             $Definition = $DriverPackage.Definition
             if ($null -eq $Definition) {
-                Write-Warning "  Invalid Definition file for Driver Package '$DriverPackageName'. Skipping Driver package."
+                Write-Warning "    Invalid Definition file for Driver Package '$DriverPackageName'. Skipping Driver package."
             } else {
                 $Section = $Definition['OSDrivers']
                 if (-Not(Compare-Criteria -Section $Section -Filter $OSVersion -Include 'OSVersion' -Exclude 'ExcludeOSVersion')) {
@@ -167,8 +169,9 @@ function Get-OSDriverPackage {
             }
         }
 
-        Write-Verbose "Finished getting Driver Package."
-
         $Result
+    }
+    end{
+        Write-Verbose "Finished getting Driver Package."
     }
 }

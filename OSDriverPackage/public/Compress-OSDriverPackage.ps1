@@ -12,9 +12,10 @@ function Compress-OSDriverPackage {
     [CmdletBinding(SupportsShouldProcess)]
     param (
         # Specifies the name and path of Driver Package that should be compressed.
-        [Parameter(Mandatory, ValueFromPipeline)]
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({(Test-Path $_ -and (Get-Item $_).PSIsContainer)})]
+        [Alias("FullName")]
         [string]$Path,
 
         # Specifies if an existing archive should be overwritten

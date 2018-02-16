@@ -13,11 +13,11 @@ function Get-OSDriverPackageDefinition {
     [CmdletBinding()]
     param (
         # Specifies the name and path to the Driver Package Definition file.
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({(Test-Path $_) -and ((Get-Item $_).Extension -eq '.txt')})]
-        [Alias("Path")]
-        [string]$Filename
+        [Alias("FullName")]
+        [string]$Path
     )
 
     begin {
@@ -27,13 +27,15 @@ function Get-OSDriverPackageDefinition {
         if (-not $PSBoundParameters.ContainsKey('WhatIf')) {
             $WhatIfPreference = $PSCmdlet.SessionState.PSVariable.GetValue('WhatIfPreference')
         }
+        Write-Verbose "Start getting Driver Package Definition from '$Path'."
     }
 
     process {
-        Write-Verbose "Start getting Driver Package Definition from '$Filename'."
+        Write-Verbose "  Getting Driver Package Definition from '$Path'."
 
-        Read-DefinitionFile -FileName $Filename
-
+        Read-DefinitionFile -Path $Path
+    }
+    end{
         Write-Verbose "Finished getting Driver Package Definition."
     }
 }

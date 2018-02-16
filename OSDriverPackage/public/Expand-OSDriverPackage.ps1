@@ -12,10 +12,10 @@ function Expand-OSDriverPackage {
     [CmdletBinding(SupportsShouldProcess)]
     param (
         # Specifies the name and path of Driver Package that should be expanded.
-        [Parameter(Mandatory, ValueFromPipeline)]
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
-        [Alias("Path")]
-        [string[]]$Filename,
+        [Alias("FullName")]
+        [string[]]$Path,
 
         # Specifies the Path to which the Driver Package should be expanded.
         # On default, a subfolder with the same name as the Driver Package will be used.
@@ -38,12 +38,12 @@ function Expand-OSDriverPackage {
         if (-not $PSBoundParameters.ContainsKey('WhatIf')) {
             $WhatIfPreference = $PSCmdlet.SessionState.PSVariable.GetValue('WhatIfPreference')
         }
+        Write-Verbose "Start expanding Driver Package."
     }
 
     process {
-        Write-Verbose "Start expanding Driver Package."
         foreach ($Archive in $Filename){
-            Write-Verbose "Expanding Driver Package '$Archive'."
+            Write-Verbose "  Expanding Driver Package '$Archive'."
             $ArchiveName = (Get-Item $Archive).BaseName
             $ArchivePath = (Get-Item $Archive).FullName
             if ([string]::IsNullOrEmpty($DestinationPath)) {
@@ -79,6 +79,8 @@ function Expand-OSDriverPackage {
                 $ArchiveDestination
             }
         }
+    }
+    end {
         Write-Verbose "Finished expanding Driver Package."
     }
 }

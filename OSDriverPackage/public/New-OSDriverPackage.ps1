@@ -23,8 +23,8 @@ function New-OSDriverPackage {
         [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({Test-Path $_})]
-        [Alias("Path")]
-        [string]$DriverPackageSourcePath,
+        [Alias("FullName")]
+        [string]$Path,
 
         # Specifies the supported Operating System version(s).
         # Recommended to use tags as e.g. Win10-x64, Win7-x86.
@@ -79,15 +79,16 @@ function New-OSDriverPackage {
         if (-not $PSBoundParameters.ContainsKey('WhatIf')) {
             $WhatIfPreference = $PSCmdlet.SessionState.PSVariable.GetValue('WhatIfPreference')
         }
+        Write-Verbose "Start creating new Driver Package."
     }
 
     process {
-        Write-Verbose "Start creating new Driver Package from '$DriverPackageSourcePath'."
-        $DriverPackageName = Split-Path $DriverPackageSourcePath -Leaf
+        Write-Verbose "  Processing path '$Path'."
+        $DriverPackageName = Split-Path $Path -Leaf
 
         # Create a Definition file first
         $DefSettings = @{
-            Path = $DriverPackageSourcePath
+            Path = $Path
             PassThru = $true
             OSVersion = $OSVersion
             ExcludeOSVersion = $ExcludeOSVersion
@@ -99,7 +100,7 @@ function New-OSDriverPackage {
         }
 
         $PkgSettings = @{
-            Path = $DriverPackageSourcePath
+            Path = $Path
             PassThru = $false
         }
 
@@ -107,19 +108,19 @@ function New-OSDriverPackage {
         if ($ShowGrid.IsPresent) { $DefSettings.ShowGrid = $true}
         if ($SkipPNPDetection.IsPresent) { $DefSettings.SkipPNPDetection = $true}
 
-        Write-Verbose "  Creating new Driver Package Definition file."
+        Write-Verbose "    Creating new Driver Package Definition file."
         $DefinitionFile = New-OSDriverPackageDefinition @DefSettings
 
         # Compress files
-        Write-Verbose "  Compressing Driver Package source content."
+        Write-Verbose "    Compressing Driver Package source content."
         #$DriverPackagePath = Compress-Folder @PkgSettings
         Compress-Folder @PkgSettings
 
         # Remove source files if necessary
         if (-Not($KeepFiles.IsPresent)) {
-            if ($PSCmdlet.ShouldProcess("Removing Driver Package source content from '$DriverPackageSourcePath'")) {
-                Write-Verbose "  Removing Driver Package source content from '$DriverPackageSourcePath'"
-                Remove-Item -Path $DriverPackageSourcePath -Recurse -Force
+            if ($PSCmdlet.ShouldProcess("Removing Driver Package source content from '$Path'")) {
+                Write-Verbose "    Removing Driver Package source content from '$Path'"
+                Remove-Item -Path $Path -Recurse -Force
             }
         }
 
@@ -131,12 +132,15 @@ function New-OSDriverPackage {
             }
 
             if ($KeepFiles.IsPresent) {
-                $Result.DriverPackageSourcePath = $DriverPackageSourcePath
+                $Result.DriverPackageSourcePath = $Path
             }
 
             $Result
         }
 
+    }
+
+    end{
         Write-Verbose "Finished creating new Driver Package."
     }
 }

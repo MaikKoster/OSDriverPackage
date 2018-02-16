@@ -13,9 +13,10 @@ function Copy-OSDriverPackage {
         # Specifies the path to the Driver Package.
         # If a folder is specified, all Driver Packages within that folder and subfolders
         # will be returned, based on the additional conditions
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({Test-Path $_})]
+        [Alias("FullName")]
         [string]$Path,
 
         # Specifies the
@@ -58,10 +59,11 @@ function Copy-OSDriverPackage {
         if (-not $PSBoundParameters.ContainsKey('WhatIf')) {
             $WhatIfPreference = $PSCmdlet.SessionState.PSVariable.GetValue('WhatIfPreference')
         }
+        Write-Verbose "Start copying Driver Packages to '$Destination'."
     }
 
     process {
-        Write-Verbose "Start copying Driver Packages to '$Path'."
+        Write-Verbose "  Processing path '$Path'."
 
         $DriverPackages = Get-OSDriverPackage -Path $Path -Name $Name -OSVersion $OSVersion -Tag $Tag -Make $Make -Model $Model
 
@@ -72,17 +74,18 @@ function Copy-OSDriverPackage {
         Foreach ($DriverPackage in $DriverPackages){
             #TODO: Update to use Robocopy. Faster and more reliable
             $DriverPackageName = $DriverPackage.DriverPackage
-            Write-Verbose "  Copying Driver Package '$DriverPackageName'."
+            Write-Verbose "    Copying Driver Package '$DriverPackageName'."
             Copy-Item -Path $DriverPackageName -Destination $Destination
             $DefinitionFile = $DriverPackage.DefinitionFile
             if (-Not(Test-Path $DefinitionFile)) {
-                Write-Warning "  Definition File '$DefinitionFile' is missing. Creating stub file."
+                Write-Warning "    Definition File '$DefinitionFile' is missing. Creating stub file."
                 New-OSDriverPackageDefinition -DriverPackagePath $DriverPackageName
             }
-            Write-Verbose "  Copying Definition file '$DefinitionFile'."
+            Write-Verbose "    Copying Definition file '$DefinitionFile'."
             Copy-Item -Path $DefinitionFile -Destination $Destination
         }
-
+    }
+    end {
         Write-Verbose "Finished copying Driver Package."
     }
 }

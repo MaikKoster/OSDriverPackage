@@ -12,8 +12,9 @@ function Compress-Folder {
     [CmdletBinding(SupportsShouldProcess)]
     param (
         # Specifies the name and path of Folder that should be compress
-        [Parameter(Mandatory, ValueFromPipeline)]
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
+        [Alias("FullName")]
         [string[]]$Path,
 
         # Specifies the type of archive.
@@ -46,10 +47,10 @@ function Compress-Folder {
         if (-not $PSBoundParameters.ContainsKey('WhatIf')) {
             $WhatIfPreference = $PSCmdlet.SessionState.PSVariable.GetValue('WhatIfPreference')
         }
+        Write-Verbose "Start compressing folder(s)."
     }
 
     process {
-        Write-Verbose "Start compressing folder(s)."
         foreach ($Folder in $Path){
             Write-Verbose "  Processing folder '$Folder'."
             $ArchiveBaseName = (Get-Item $Folder).Name
@@ -118,7 +119,8 @@ function Compress-Folder {
                 $ArchiveFullName
             }
         }
-
+    }
+    end {
         Write-Verbose "Finished compressing folder(s)."
     }
 }

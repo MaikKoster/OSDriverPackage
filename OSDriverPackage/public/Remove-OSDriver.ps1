@@ -19,11 +19,11 @@ function Remove-OSDriver {
     [CmdletBinding(SupportsShouldProcess)]
     param (
         # Specifies the name and path for the driver file
-        [Parameter(Mandatory, ValueFromPipeline)]
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({(Test-Path $_) -and ((Get-Item $_).Extension -eq '.inf')})]
-        [Alias("Path")]
-        [string]$Filename
+        [Alias("FullName")]
+        [string]$Path
     )
 
     begin {
@@ -33,21 +33,22 @@ function Remove-OSDriver {
         if (-not $PSBoundParameters.ContainsKey('WhatIf')) {
             $WhatIfPreference = $PSCmdlet.SessionState.PSVariable.GetValue('WhatIfPreference')
         }
+        Write-Verbose "Start removing Driver."
     }
 
     process {
-        Write-Verbose "Start removing Driver '$Filename'."
+        Write-Verbose " Processing path '$Path'."
 
         # Get Driver information
-        $DriverInfo = Get-OSDriver -Filename $Filename
-        $DriverFileName = Split-Path -Path $Filename -Leaf
-        $ParentPath = Split-Path -Path $Filename -Parent
+        $DriverInfo = Get-OSDriver -Path $Path
+        $DriverFileName = Split-Path -Path $Path -Leaf
+        $ParentPath = Split-Path -Path $Path -Parent
 
         if ($null -ne $DriverInfo) {
             # Get the related files of all other drivers in the same folder
             $ReferencedFiles = Get-ChildItem -Path $ParentPath -Filter '*.inf' |
                                 Where-Object {$_.Name -ne $DriverFileName} |
-                                Foreach-Object {Get-DriverSourceDiskFile -FileName $_.FullName} |
+                                Foreach-Object {Get-DriverSourceDiskFile -Path $_.FullName} |
                                 Select-Object -Unique
 
             foreach ($DriverSourceFile in $DriverInfo.DriverSourceFiles) {
@@ -78,8 +79,9 @@ function Remove-OSDriver {
                 }
             }
         }
-
-        Write-Verbose "Finished removing Driver."
     }
 
+    end {
+        Write-Verbose "Finished removing Driver."
+    }
 }
