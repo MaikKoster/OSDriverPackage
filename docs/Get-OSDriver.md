@@ -5,19 +5,19 @@ online version:
 schema: 2.0.0
 ---
 
-# Get-OSDriverPackageDefinition
+# Get-OSDriver
 
 ## SYNOPSIS
-Gets a Driver Package Definition.
+Returns information about the specified driver.
 
 ## SYNTAX
 
 ```
-Get-OSDriverPackageDefinition [-Path] <String> [<CommonParameters>]
+Get-OSDriver [-Path] <String> [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-The Get-OSDriverPackageDefinition CmdLet gets a Driver Package Definition.
+Returns information about the specified driver and the related files.
 
 ## EXAMPLES
 
@@ -31,7 +31,7 @@ PS C:\> {{ Add example code here }}
 ## PARAMETERS
 
 ### -Path
-Specifies the name and path to the Driver Package Definition file.
+Specifies the name and path for the driver file
 
 ```yaml
 Type: String
@@ -53,7 +53,7 @@ For more information, see about_CommonParameters (http://go.microsoft.com/fwlink
 
 ## OUTPUTS
 
-### System.Collections.Specialized.OrderedDictionary
+### System.Management.Automation.PSObject
 
 ## NOTES
 

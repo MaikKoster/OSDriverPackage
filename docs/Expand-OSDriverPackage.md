@@ -13,8 +13,8 @@ Extracts files from a specified DriverPackage.
 ## SYNTAX
 
 ```
-Expand-OSDriverPackage [-Filename] <String[]> [[-DestinationPath] <String>] [-Force] [-RemoveArchive]
- [-Passthru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Expand-OSDriverPackage [-Path] <String[]> [[-DestinationPath] <String>] [-Force] [-RemoveArchive] [-Passthru]
+ [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -31,18 +31,18 @@ PS C:\> {{ Add example code here }}
 
 ## PARAMETERS
 
-### -Filename
+### -Path
 Specifies the name and path of Driver Package that should be expanded.
 
 ```yaml
 Type: String[]
 Parameter Sets: (All)
-Aliases: Path
+Aliases: FullName
 
 Required: True
 Position: 1
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: True (ByPropertyName, ByValue)
 Accept wildcard characters: False
 ```
 

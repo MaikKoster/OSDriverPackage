@@ -13,7 +13,7 @@ function Get-OSDriver {
         # Specifies the name and path for the driver file
         [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({(Test-Path $_) -and ((Get-Item $_).Extension -eq '.inf')})]
+        [ValidateScript({(Test-Path $_) -and ((Get-Item $_).Extension -match '\.(inf|json)')})]
         [Alias("FullName")]
         [string]$Path
     )
@@ -29,22 +29,47 @@ function Get-OSDriver {
     }
 
     process {
-        if ((Split-Path -Path $Path -Leaf) -eq 'autorun.inf') {
+        $Driver = Get-Item $Path
+        if ($Driver.Name -eq 'autorun.inf') {
             Write-Verbose "  Skipping '$Path'."
-        } else {
+        } elseif ($Driver.Extension -eq '.inf') {
             Write-Verbose "  Getting Windows Driver info from '$Path'"
-            $DriverFile = Get-Item -Pat $Path
 
-            #TODO: Get-WindowsDriver requires elevation! Might need to be replaced
-            $DriverInfo = Get-WindowsDriver -Online -Driver ($DriverFile.FullName)
+            #TODO: Get-WindowsDriver requires elevation! Might need to be replaced. Not sure if it's worth the effort
+            # Get Windows Drivers info using Dism.
+            # Extract relevant information only to save space.
+            $DriverInfo = Get-WindowsDriver -Online -Driver $Path
+            if ($null -ne $DriverInfo) {
+                $First = $DriverInfo | Select-Object -First 1
 
-            # Get SourceDiskFiles
-            $DriverSourceFiles = Get-DriverSourceDiskFile -Path $DriverFile
-            [PSCustomObject]@{
-                DriverFile = $DriverFile
-                DriverInfo = $DriverInfo
-                DriverSourceFiles = $DriverSourceFiles
+                # Get SourceDiskFiles
+                $DriverSourceFiles = Get-DriverSourceDiskFile -Path $Path.ToString()
+                [PSCustomObject]@{
+                    DriverFile = $Path #($DriverFile.FullName)
+                    DriverClass = ($First.ClassName)
+                    DriverVersion = ($First.Version)
+                    HardwareIDs = @($DriverInfo | ForEach-Object {
+                        $HardwareID = [PSCustomObject]@{
+                            HardwareID = ($_.HardwareId)
+                            HardwareDescription = ($_.HardwareDescription)
+                            Architecture = ''
+                        }
+                        if ($_.Architecture -eq 0) {
+                            $HardwareID.Architecture = 'x86'
+                        } elseif ($_.Architecture -eq 9) {
+                            $HardwareID.Architecture = 'x64'
+                        } elseif ($_.Architecture -eq 6) {
+                            $HardwareID.Architecture = 'ia64'
+                        }
+                        $HardwareID
+                    })
+
+                    #DriverInfo = $DriverInfo
+                    DriverSourceFiles = $DriverSourceFiles
+                }
             }
+        } elseif ($Driver.Extension -eq '.json') {
+            Read-PackageInfoFile -Path ($Driver.FullName)
         }
     }
 

@@ -14,14 +14,14 @@ Gets a Driver Package.
 
 ```
 Get-OSDriverPackage [-Path] <String> [[-Name] <String[]>] [[-Tag] <String[]>] [[-OSVersion] <String[]>]
- [[-Make] <String[]>] [[-Model] <String[]>] [<CommonParameters>]
+ [[-Architecture] <String[]>] [[-Make] <String[]>] [[-Model] <String[]>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-The Get-OSDriverPackage CmdLet get one or multiple Driver Packages based on the supplied conditions.
-All supplied conditions are handled as AND.
-If no condition is supplied, it is handled as wildcard and
-includeds all.
+The Get-OSDriverPackage CmdLet gets one or multiple Driver Packages based on the supplied conditions.
+If no value for a specific criteria has been supplied, it will be ignored.
+Multiple criteria will be treated as AND.
+Multiple values for a criteria will be treated as OR.
 
 ## EXAMPLES
 
@@ -36,18 +36,17 @@ PS C:\> {{ Add example code here }}
 
 ### -Path
 Specifies the path to the Driver Package.
-If a folder is specified, all Driver Packages within that folder and subfolders
-will be returned, based on the additional conditions
+If a folder is specified, all Driver Packages within that folder and subfolders will be returned
 
 ```yaml
 Type: String
 Parameter Sets: (All)
-Aliases:
+Aliases: FullName
 
 Required: True
 Position: 1
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByPropertyName, ByValue)
 Accept wildcard characters: False
 ```
 
@@ -102,6 +101,23 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Architecture
+Filters the Driver Packages by Architecture
+Recommended to use tags as e.g.
+x64, x86.
+
+```yaml
+Type: String[]
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: 5
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Make
 Filters the Driver Packages by Make(s)/Vendor(s)/Manufacture(s).
 Use values from Manufacturer property from Win32_ComputerSystem.
@@ -114,7 +130,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 5
+Position: 6
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -132,7 +148,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 6
+Position: 7
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False

@@ -31,6 +31,15 @@ Function Compare-OSDriver {
         [Alias("Driver")]
         [PSCustomObject]$PackageDriver,
 
+        # Specifies a list of critical PnP IDs, that must be covered by the Core Drivers
+        # if found within the Package Driver.
+        [string[]]$CriticalIDs = @(),
+
+        # Specifies a list of PnP IDs, that can be safely ignored during the comparison.
+        [string[]]$IgnoreIDs = @(),
+
+        # Specifies, if the Driver version should be ignored.
+        [switch]$IgnoreVersion,
 
         # Specifies, if the Package Driver should be returned.
         # Helpful if used within a pipeline.
@@ -40,42 +49,69 @@ Function Compare-OSDriver {
     begin {
         Write-Verbose "Start comparing drivers."
         Write-Verbose " Core Driver : $($CoreDriver.DriverFile)"
-        $CoreVersion = New-Object System.Version ($CoreDriver.DriverInfo | Select-Object -First 1 -ExpandProperty Version)
+        $CoreVersion = New-Object System.Version ($CoreDriver.DriverVersion)
         Write-Verbose " Core Version: $CoreVersion"
-        $CorePNPIDS = ($CoreDriver.DriverInfo | Select-Object -ExpandProperty HardwareID -Unique)
+
+        # Use Hashtables, as we might have to run multiple contains checks
+        $CorePnPIDs = @{}
+        $CoreDriver.HardwareIDs | Select-Object -ExpandProperty HardwareID | ForEach-Object {$CorePnPIDs[$_]=$null}
+        $CriticalPnPIDs = @{}
+        $CriticalIDs | ForEach-Object {$CriticalPnPIDs[$_]=$null}
+        $IgnorePnPIDs = @{}
+        $IgnoreIDs | ForEach-Object {$IgnorePnPIDs[$_]=$null}
     }
 
     process {
         $Replace = $false
 
         Write-Verbose "  Pkg Driver : $($PackageDriver.DriverFile)"
-        $DriverVersion = New-Object System.Version ($PackageDriver.DriverInfo | Select-Object -First 1 -ExpandProperty Version)
+        $DriverVersion = New-Object System.Version ($PackageDriver.DriverVersion)
         Write-Verbose "  Pkg Version: $DriverVersion"
 
         if ($DriverVersion.CompareTo($CoreVersion) -le 0) {
             Write-Verbose '    Core Driver has an equal or higher version.'
             $Replace = $true
             $Version = $true
+        } elseif ($IgnoreVersion.IsPresent) {
+            Write-Verbose '    Core Driver has a lower version. Continue with PnP check as Version check was set to be ignored.'
+            $Replace = $true
+            $Version = $false
         } else {
             Write-Verbose '    Core Driver has a lower version. Keep Package Driver.'
+            $Version = $false
         }
 
-        if ($Result){
+        if ($Replace){
             # Compare PNPIDs
             # Every PnP ID from the Package Driver should be supported by the Core Driver as well.
-            $PkgPNPIDS = ($PackageDriver.DriverInfo | Select-Object -ExpandProperty HardwareID -Unique)
-            $MissingPNPIDs = @()
-            foreach ($PnPID in $PkgPNPIDS){
-                if ($CorePNPIDS -notcontains $PnPID){
-                    $MissingPNPIDs += $PnPID
-                    Write-Verbose "    PNPID '$PnPID' is not supported by Core Driver. Keep Package Driver."
-                    $Replace = $false
+            # TODO: Add logic for architecture
+            # TODO: Support for CompatibleIDs ?
+            $MissingPnPIDs = @{}
+            $PackageDriver.HardwareIDs | Select-Object -ExpandProperty HardwareID | ForEach-Object {
+                $PnPID = $_
+                if (-Not($CorePNPIDS.ContainsKey($PnPID))){
+                    $MissingPnPIDs[$_] = $null
+
+                    if ($CriticalPnPIDs.ContainsKey($PnPID)) {
+                        Write-Verbose "    PNPID '$_' is not supported by Core Driver and defined as critical. Keep Package Driver."
+                        $Replace = $false
+                    } elseif  (($IgnorePnPIDs.ContainsKey($_)) -and (($CriticalPnPIDs.Count -eq 0) -or (-not($CriticalPnPIDs.ContainsKey($PnPID))))) {
+                        Write-Verbose "    PNPID '$_' is not supported by Core Driver but is defined as non-critical."
+                    } else {
+                        Write-Verbose "    PNPID '$_' is not supported by Core Driver. Keep Package Driver."
+                        $Replace = $false
+                    }
                 } else {
-                    Write-Verbose "    PNPID '$PnPID' is supported by Core Driver."
+                    Write-Verbose "    PNPID '$_' is supported by Core Driver."
                 }
             }
+
             if ($Replace) {
-                Write-Verbose "    Core Driver supports all PnP IDs of the Package Driver."
+                if ($CriticalPnPIDs.Count -eq 0) {
+                    Write-Verbose "    Core Driver supports all PnP IDs of the Package Driver."
+                } else {
+                    Write-Verbose "    Core Driver supports all critical PnP IDs of the Package Driver."
+                }
             }
         }
 
@@ -93,10 +129,10 @@ Function Compare-OSDriver {
                 $PackageDriver | Add-Member -NotePropertyName 'LowerVersion' -NotePropertyValue $Version
             }
 
-            if ([bool]($PackageDriver.PSobject.Properties.Name -match "MissingPNPIDs")) {
-                $PackageDriver.MissingPNPIDs = $MissingPNPIDs
+            if ([bool]($PackageDriver.PSobject.Properties.Name -match "MissingPnPIDs")) {
+                $PackageDriver.MissingPnPIDs = ($MissingPnPIDs.Keys)
             } else {
-                $PackageDriver | Add-Member -NotePropertyName 'MissingPNPIDs' -NotePropertyValue $MissingPNPIDs
+                $PackageDriver | Add-Member -NotePropertyName 'MissingPnPIDs' -NotePropertyValue ($MissingPnPIDs.Keys)
             }
 
             $PackageDriver

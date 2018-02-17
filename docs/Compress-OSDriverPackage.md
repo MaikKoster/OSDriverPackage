@@ -5,21 +5,20 @@ online version:
 schema: 2.0.0
 ---
 
-# Get-OSDriverFile
+# Compress-OSDriverPackage
 
 ## SYNOPSIS
-Finds specified driver files.
+Compresses the specified Driver Package into a cab file.
 
 ## SYNTAX
 
 ```
-Get-OSDriverFile [-Path] <String> [[-Files] <String>] [-RemoveDirectories] [-ShowGrid] [-Expand] [-WhatIf]
- [-Confirm] [<CommonParameters>]
+Compress-OSDriverPackage [-Path] <String> [-Force] [-RemoveFolder] [-Passthru] [-WhatIf] [-Confirm]
+ [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Finds specified driver files.
-Optionally all directories containing these files can be removed.
+Compresses the specified Driver Package into a cab file.
 
 ## EXAMPLES
 
@@ -33,7 +32,7 @@ PS C:\> {{ Add example code here }}
 ## PARAMETERS
 
 ### -Path
-Specifies the path where to search for driver files
+Specifies the name and path of Driver Package that should be compressed.
 
 ```yaml
 Type: String
@@ -47,25 +46,8 @@ Accept pipeline input: True (ByPropertyName, ByValue)
 Accept wildcard characters: False
 ```
 
-### -Files
-Specifies the name of the drivers files.
-The name can include wildcards.
-Default is '*.inf'
-
-```yaml
-Type: String
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: 2
-Default value: *.inf
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -RemoveDirectories
-Specifies if the Parent Directory should be removed.
+### -Force
+Specifies if an existing archive should be overwritten
 
 ```yaml
 Type: SwitchParameter
@@ -79,8 +61,8 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -ShowGrid
-Specifies if a gridview should be shown to select the driver files.
+### -RemoveFolder
+Specifies if the original folder should be deleted after it has been compressed.
 
 ```yaml
 Type: SwitchParameter
@@ -94,10 +76,8 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Expand
-Specifies if the Driver Package should be expanded on the fly.
-On default, expand -D will be used to extract a list of file names only.
-Only usefull if a Driver Package is specified.
+### -Passthru
+Specifies, if the name and path of the compressed archive should be returned.
 
 ```yaml
 Type: SwitchParameter

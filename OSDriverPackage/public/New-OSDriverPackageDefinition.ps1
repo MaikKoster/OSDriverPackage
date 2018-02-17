@@ -38,6 +38,12 @@ function New-OSDriverPackageDefinition {
         [Parameter(ParameterSetName='PackageWithSettings')]
         [string[]]$ExcludeOSVersion,
 
+        # Specifies the supported Architectures.
+        # Recommended to use the tags x86, x64 and/or ia64.
+        [Parameter(ParameterSetName='NameWithSettings')]
+        [Parameter(ParameterSetName='PackageWithSettings')]
+        [string[]]$Architecture,
+
         # Specifies generic tag(s) that can be used to further identify the Driver Package.
         # Can be used to e.g. identify specific Core Packages.
         [Parameter(ParameterSetName='NameWithSettings')]
@@ -118,7 +124,7 @@ function New-OSDriverPackageDefinition {
 
     process {
         if ([string]::IsNullOrEmpty($FileName)) {
-            $FileName = "$((Get-Item $DriverPackagePath).FullName).txt"
+            $FileName = "$((Get-Item $DriverPackagePath).FullName -replace '.cab', '').txt"
         }
         Write-Verbose "Start creating new Driver Package Definition file '$Filename'."
 
@@ -127,41 +133,62 @@ function New-OSDriverPackageDefinition {
             $NewDefinition = [System.Collections.Specialized.OrderedDictionary]@{}
 
             # Section OSDriver must be present
-            Write-Verbose "  Creating OSDriver section"
-            $NewDefinition['OSDriver'] = [System.Collections.Specialized.OrderedDictionary]@{}
+            Write-Verbose "  Creating OSDrivers section"
+            $NewDefinition['OSDrivers'] = [System.Collections.Specialized.OrderedDictionary]@{}
             if ($null -ne $OSVersion) {
-                $NewDefinition['OSDriver']['OSVersion'] = $OSVersion -join ', '
-                Write-Verbose "    OSVersion = $($NewDefinition['OSDriver']['OSVersion'])"
+                $NewDefinition['OSDrivers']['OSVersion'] = $OSVersion -join ', '
+                Write-Verbose "    OSVersion = $($NewDefinition['OSDrivers']['OSVersion'])"
+            } else {
+                $NewDefinition['OSDrivers']['OSVersion'] = ''
             }
 
             if ($null -ne $ExcludeOSVersion) {
-                $NewDefinition['OSDriver']['ExcludeOSVersion'] = $ExcludeOSVersion -join ', '
-                Write-Verbose "    ExcludeOSVersion = $($NewDefinition['OSDriver']['ExcludeOSVersion'])"
+                $NewDefinition['OSDrivers']['ExcludeOSVersion'] = $ExcludeOSVersion -join ', '
+                Write-Verbose "    ExcludeOSVersion = $($NewDefinition['OSDrivers']['ExcludeOSVersion'])"
+            } else {
+                $NewDefinition['OSDrivers']['ExcludeOSVersion'] = ''
+            }
+
+            if ($null -ne $Architecture) {
+                $NewDefinition['OSDrivers']['Architecture'] = $Architecture -join ', '
+                Write-Verbose "    Architecture = $($NewDefinition['OSDrivers']['Architecture'])"
+            } else {
+                $NewDefinition['OSDrivers']['Architecture'] = ''
             }
 
             if ($null -ne $Make) {
-                $NewDefinition['OSDriver']['Make'] = $Make -join ', '
-                Write-Verbose "    Make = $($NewDefinition['OSDriver']['Make'])"
+                $NewDefinition['OSDrivers']['Make'] = $Make -join ', '
+                Write-Verbose "    Make = $($NewDefinition['OSDrivers']['Make'])"
+            } else {
+                $NewDefinition['OSDrivers']['Make'] = ''
             }
 
             if ($null -ne $ExcludeMake) {
-                $NewDefinition['OSDriver']['ExcludeMake'] = $ExcludeMake -join ', '
-                Write-Verbose "    ExcludeMake = $($NewDefinition['OSDriver']['ExcludeMake'])"
+                $NewDefinition['OSDrivers']['ExcludeMake'] = $ExcludeMake -join ', '
+                Write-Verbose "    ExcludeMake = $($NewDefinition['OSDrivers']['ExcludeMake'])"
+            } else {
+                $NewDefinition['OSDrivers']['ExcludeMake'] = ''
             }
 
             if ($null -ne $Model) {
-                $NewDefinition['OSDriver']['Model'] = $Model -join ', '
-                Write-Verbose "    Model = $($NewDefinition['OSDriver']['Model'])"
+                $NewDefinition['OSDrivers']['Model'] = $Model -join ', '
+                Write-Verbose "    Model = $($NewDefinition['OSDrivers']['Model'])"
+            }else {
+                $NewDefinition['OSDrivers']['Model'] = ''
             }
 
             if ($null -ne $ExcludeModel) {
-                $NewDefinition['OSDriver']['ExcludeModel'] = $ExcludeModel -join ', '
-                Write-Verbose "    ExcludeModel = $($NewDefinition['OSDriver']['ExcludeModel'])"
+                $NewDefinition['OSDrivers']['ExcludeModel'] = $ExcludeModel -join ', '
+                Write-Verbose "    ExcludeModel = $($NewDefinition['OSDrivers']['ExcludeModel'])"
+            }else {
+                $NewDefinition['OSDrivers']['ExcludeModel'] = ''
             }
 
             if (-Not([string]::IsNullOrEmpty($URL))) {
-                $NewDefinition['OSDriver']['URL'] = $URL -join ', '
-                Write-Verbose "    URL = $($NewDefinition['OSDriver']['URL'])"
+                $NewDefinition['OSDrivers']['URL'] = $URL -join ', '
+                Write-Verbose "    URL = $($NewDefinition['OSDrivers']['URL'])"
+            }else {
+                $NewDefinition['OSDrivers']['URL'] = ''
             }
 
             if ($PSCmdlet.ParameterSetName -eq 'PackageWithSettings') {
@@ -175,15 +202,17 @@ function New-OSDriverPackageDefinition {
                     Write-Verbose "  Searching for drivers."
                     $NewDefinition['WQL'] = [System.Collections.Specialized.OrderedDictionary]@{}
                     $NewDefinition['PNPIDS'] = [System.Collections.Specialized.OrderedDictionary]@{}
-                    Get-OSDriver -Path $DriverPackagePath -Verbose:$false |
-                        Select-Object -ExpandProperty DriverInfo |
+                    $Drivers = Get-OSDriver -Path ($FileName -replace '.txt', '.json')
+                    $Drivers | Select-Object -ExpandProperty HardwareIDs |
                         Select-Object -Property HardwareID,HardwareDescription -Unique |
                         Sort-Object -Property HardwareID | ForEach-Object {
                             $Count++
                             $HardwareID = $_.HardwareID
-                            $NewDefinition['WQL']["Comment_$Count"] = "Select * FROM Win32_PnPEntity WHERE DeviceID LIKE '$HardwareID'"
-                            $NewDefinition['PNPIDS']["$HardwareID"] = $_.HardwareDescription
-                            Write-Verbose "    $HardwareID = $($_.HardwareDescription)"
+                            if (-Not([string]::IsNullOrEmpty($HardwareID))) {
+                                $NewDefinition['WQL']["Comment_$Count"] = "Select * FROM Win32_PnPEntity WHERE DeviceID LIKE '$HardwareID'"
+                                $NewDefinition['PNPIDS']["$HardwareID"] = $_.HardwareDescription
+                                Write-Verbose "    $HardwareID = $($_.HardwareDescription)"
+                            }
                         }
 
                 }

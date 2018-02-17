@@ -11,11 +11,20 @@ Locale: en-US
 Powershell Module to handle the tooling around Driver Package management
 
 ## OSDriverPackage Cmdlets
+### [Compare-OSDriver](Compare-OSDriver.md)
+Checks if the supplied Driver can be replaced by the supplied Core Driver.
+
+### [Compress-OSDriverPackage](Compress-OSDriverPackage.md)
+Compresses the specified Driver Package into a cab file.
+
 ### [Copy-OSDriverPackage](Copy-OSDriverPackage.md)
 Copies Driver Packages to a different location.
 
 ### [Expand-OSDriverPackage](Expand-OSDriverPackage.md)
 Extracts files from a specified DriverPackage.
+
+### [Get-OSDriver](Get-OSDriver.md)
+Returns information about the specified driver.
 
 ### [Get-OSDriverFile](Get-OSDriverFile.md)
 Finds specified driver files.
@@ -31,6 +40,12 @@ Creates a new Driver Package.
 
 ### [New-OSDriverPackageDefinition](New-OSDriverPackageDefinition.md)
 Creates a new Driver Package definition file.
+
+### [Read-OSDriverPackage](Read-OSDriverPackage.md)
+Scans for all drivers in a Driver package and creates info file.
+
+### [Remove-OSDriver](Remove-OSDriver.md)
+Removes a Driver file.
 
 ### [Search-OSDriverContent](Search-OSDriverContent.md)
 Searches in INF files for a text string

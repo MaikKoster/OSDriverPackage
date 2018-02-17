@@ -1,7 +1,7 @@
 function Compare-Criteria {
 
     [CmdletBinding()]
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
     param (
         [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]

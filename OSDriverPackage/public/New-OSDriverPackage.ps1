@@ -108,6 +108,8 @@ function New-OSDriverPackage {
         if ($ShowGrid.IsPresent) { $DefSettings.ShowGrid = $true}
         if ($SkipPNPDetection.IsPresent) { $DefSettings.SkipPNPDetection = $true}
 
+        Read-OSDriverPackage -Path $Path
+
         Write-Verbose "    Creating new Driver Package Definition file."
         $DefinitionFile = New-OSDriverPackageDefinition @DefSettings
 

@@ -108,9 +108,9 @@ function Get-OSDriverFile {
                 Write-Verbose "    Removing temporary Driver Package content."
                 Remove-Item -Path $ExpandedPath -Recurse -Force
             }
-
-            $DriverFiles
         }
+
+        $DriverFiles
     }
     end {
         Write-Verbose "Finished getting Driver Files."

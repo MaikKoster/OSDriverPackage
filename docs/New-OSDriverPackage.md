@@ -13,10 +13,10 @@ Creates a new Driver Package.
 ## SYNTAX
 
 ```
-New-OSDriverPackage [-DriverPackageSourcePath] <String> [[-OSVersion] <String[]>]
- [[-ExcludeOSVersion] <String[]>] [[-Make] <String[]>] [[-ExcludeMake] <String[]>] [[-Model] <String[]>]
- [[-ExcludeModel] <String[]>] [[-URL] <String>] [-ShowGrid] [-SkipPNPDetection] [-Force] [-KeepFiles]
- [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+New-OSDriverPackage [-Path] <String> [[-OSVersion] <String[]>] [[-ExcludeOSVersion] <String[]>]
+ [[-Make] <String[]>] [[-ExcludeMake] <String[]>] [[-Model] <String[]>] [[-ExcludeModel] <String[]>]
+ [[-URL] <String>] [-ShowGrid] [-SkipPNPDetection] [-Force] [-KeepFiles] [-PassThru] [-WhatIf] [-Confirm]
+ [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -43,14 +43,14 @@ PS C:\> {{ Add example code here }}
 
 ## PARAMETERS
 
-### -DriverPackageSourcePath
+### -Path
 Specifies the name and path of the Driver Package content
 The Definition File will be named exactly the same as the Driver Package.
 
 ```yaml
 Type: String
 Parameter Sets: (All)
-Aliases: Path
+Aliases: FullName
 
 Required: True
 Position: 1

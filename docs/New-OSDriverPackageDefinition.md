@@ -15,9 +15,9 @@ Creates a new Driver Package definition file.
 ### PackageWithSettings (Default)
 ```
 New-OSDriverPackageDefinition -DriverPackagePath <String> [-OSVersion <String[]>]
- [-ExcludeOSVersion <String[]>] [-Tag <String[]>] [-ExcludeTag <String[]>] [-Make <String[]>]
- [-ExcludeMake <String[]>] [-Model <String[]>] [-ExcludeModel <String[]>] [-URL <String>] [-ShowGrid]
- [-SkipPNPDetection] [-Force] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+ [-ExcludeOSVersion <String[]>] [-Architecture <String[]>] [-Tag <String[]>] [-ExcludeTag <String[]>]
+ [-Make <String[]>] [-ExcludeMake <String[]>] [-Model <String[]>] [-ExcludeModel <String[]>] [-URL <String>]
+ [-ShowGrid] [-SkipPNPDetection] [-Force] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### NameWithDefinition
@@ -29,9 +29,9 @@ New-OSDriverPackageDefinition -FileName <String> -Definition <OrderedDictionary>
 ### NameWithSettings
 ```
 New-OSDriverPackageDefinition -FileName <String> [-OSVersion <String[]>] [-ExcludeOSVersion <String[]>]
- [-Tag <String[]>] [-ExcludeTag <String[]>] [-Make <String[]>] [-ExcludeMake <String[]>] [-Model <String[]>]
- [-ExcludeModel <String[]>] [-URL <String>] [-WQL <String[]>] [-PNPIDs <Hashtable>] [-Force] [-PassThru]
- [-WhatIf] [-Confirm] [<CommonParameters>]
+ [-Architecture <String[]>] [-Tag <String[]>] [-ExcludeTag <String[]>] [-Make <String[]>]
+ [-ExcludeMake <String[]>] [-Model <String[]>] [-ExcludeModel <String[]>] [-URL <String>] [-WQL <String[]>]
+ [-PNPIDs <Hashtable>] [-Force] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -100,6 +100,22 @@ Accept wildcard characters: False
 Specifies the excluded Operating System version(s).
 Recommended to use tags as e.g.
 Win10-x64, Win7-x86.
+
+```yaml
+Type: String[]
+Parameter Sets: PackageWithSettings, NameWithSettings
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Architecture
+Specifies the supported Architectures.
+Recommended to use the tags x86, x64 and/or ia64.
 
 ```yaml
 Type: String[]
