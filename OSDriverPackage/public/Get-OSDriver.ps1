@@ -48,6 +48,7 @@ function Get-OSDriver {
                     DriverFile = $Path #($DriverFile.FullName)
                     DriverClass = ($First.ClassName)
                     DriverVersion = ($First.Version)
+                    DriverSourceFiles = $DriverSourceFiles
                     HardwareIDs = @($DriverInfo | ForEach-Object {
                         $HardwareID = [PSCustomObject]@{
                             HardwareID = ($_.HardwareId)
@@ -63,9 +64,6 @@ function Get-OSDriver {
                         }
                         $HardwareID
                     })
-
-                    #DriverInfo = $DriverInfo
-                    DriverSourceFiles = $DriverSourceFiles
                 }
             }
         } elseif ($Driver.Extension -eq '.json') {

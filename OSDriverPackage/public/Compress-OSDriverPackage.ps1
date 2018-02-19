@@ -14,7 +14,7 @@ function Compress-OSDriverPackage {
         # Specifies the name and path of Driver Package that should be compressed.
         [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({(Test-Path $_ -and (Get-Item $_).PSIsContainer)})]
+        [ValidateScript({((Test-Path $_) -and ((Get-Item $_).PSIsContainer))})]
         [Alias("FullName")]
         [string]$Path,
 
@@ -45,7 +45,7 @@ function Compress-OSDriverPackage {
             throw "Archive '$Path.cab' exists already and '-Force' is not specified."
         }
 
-        Compress-Folder -Path $Path -HighCompression -PassThru -Force -Verbose:$false
+        Compress-Folder -Path $Path -HighCompression -PassThru -Verbose:$false
 
         if ($RemoveFolder.IsPresent) {
             if ($PSCmdlet.ShouldProcess("Removing folder '$Path'.")) {

@@ -5,36 +5,44 @@ online version:
 schema: 2.0.0
 ---
 
-# Compare-OSDriver
+# Compare-OSDriverPackage
 
 ## SYNOPSIS
-Checks if the supplied Driver can be replaced by the supplied Core Driver.
+Checks the supplied Driver Package against the Core Driver Package.
 
 ## SYNTAX
 
 ```
-Compare-OSDriver [-CoreDriver] <PSObject> [-Driver] <PSObject> [[-CriticalIDs] <String[]>]
- [[-IgnoreIDs] <String[]>] [-IgnoreVersion] [-PassThru] [<CommonParameters>]
+Compare-OSDriverPackage [-CoreDriverPackage] <PSObject[]> [-DriverPackage] <PSObject>
+ [[-CriticalIDs] <String[]>] [[-IgnoreIDs] <String[]>] [-IgnoreVersion] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-The Compare-OSDriver CmdLet compares two drivers.
-The supplied driver will be evaluated
-against the supplied Core Driver.
+The Compare-OSDriverPackage CmdLet compares Driver Packages.
+The supplied Driver Package will be
+evaluated against the supplied Core Driver Package.
 
-If it has the same or lower version as the Core Driver, and all PNPIDs are handled by the Core
-Driver as well, the function, it will return $true to indicate, that it can most likely be
+It uses Compare-OSDriver to compare related Drivers in each Driver Package.
+Drivers will be matched
+by the name of the inf file.
+To compare drivers where a vendor uses different filenames for the same
+driver, you can use Compare-OSDrive to overwrite this standard behaviour individuall.
+
+Comparison logic is based on the implementation of Compare-OSDriver:
+If it has the same or lower version as the Core Driver, and all PnPIDs are handled by the Core
+Driver as well, the Replace property will be set to $true to indicate, that it can most likely be
 replaced by the Core Driver.
 If not, it will return $false.
 
-If PassThru is supplied, additional information about the evaluation will be added to the Package
-Driver object and passed thru for further actions.
+Additional information about the evaluation will be added to each Driver object to allow further
+actions.
 The new poperties will be:
-Replace: will be set to $true, if the Driver can be safely replaced by the Core Driver.
+
+- Replace: will be set to $true, if the Driver can be safely replaced by the Core Driver.
 $False if not.
-LowerVersion: will be set to $true, if the Core Driver has a higher version.
+- LowerVersion: will be set to $true, if the Core Driver has a higher version.
 $false, if not.
-MissingPnPIDs: List of PnPIDs, that are not referenced by the Core Driver.
+- MissingPnPIDs: List of PnPIDs, that are not referenced by the Core Driver.
 
 ## EXAMPLES
 
@@ -47,8 +55,23 @@ PS C:\> {{ Add example code here }}
 
 ## PARAMETERS
 
-### -CoreDriver
+### -CoreDriverPackage
 Specifies the Core Driver.
+
+```yaml
+Type: PSObject[]
+Parameter Sets: (All)
+Aliases:
+
+Required: True
+Position: 1
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -DriverPackage
+Specifies the Driver Package that should be compared
 
 ```yaml
 Type: PSObject
@@ -56,24 +79,9 @@ Parameter Sets: (All)
 Aliases:
 
 Required: True
-Position: 1
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Driver
-Specifies that should be compared
-
-```yaml
-Type: PSObject
-Parameter Sets: (All)
-Aliases: PackageDriver
-
-Required: True
 Position: 2
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
@@ -110,22 +118,6 @@ Accept wildcard characters: False
 
 ### -IgnoreVersion
 Specifies, if the Driver version should be ignored.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: False
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -PassThru
-Specifies, if the Package Driver should be returned.
-Helpful if used within a pipeline.
 
 ```yaml
 Type: SwitchParameter

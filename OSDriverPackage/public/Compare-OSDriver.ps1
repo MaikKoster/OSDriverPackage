@@ -28,8 +28,8 @@ Function Compare-OSDriver {
         # Specifies that should be compared
         [Parameter(Mandatory, ValueFromPipeline)]
         [ValidateNotNullOrEmpty()]
-        [Alias("Driver")]
-        [PSCustomObject]$PackageDriver,
+        [Alias("PackageDriver")]
+        [PSCustomObject]$Driver,
 
         # Specifies a list of critical PnP IDs, that must be covered by the Core Drivers
         # if found within the Package Driver.
@@ -53,8 +53,10 @@ Function Compare-OSDriver {
         Write-Verbose " Core Version: $CoreVersion"
 
         # Use Hashtables, as we might have to run multiple contains checks
-        $CorePnPIDs = @{}
-        $CoreDriver.HardwareIDs | Select-Object -ExpandProperty HardwareID | ForEach-Object {$CorePnPIDs[$_]=$null}
+        $CorePnPIDsx86 = @{}
+        $CorePnPIDsx64 = @{}
+        $CoreDriver.HardwareIDs | Where-Object {$_.Architecture -eq 'x86'} | Select-Object -ExpandProperty HardwareID | ForEach-Object {$CorePnPIDsx86[$_]=$null}
+        $CoreDriver.HardwareIDs | Where-Object {$_.Architecture -eq 'x64'} | Select-Object -ExpandProperty HardwareID | ForEach-Object {$CorePnPIDsx64[$_]=$null}
         $CriticalPnPIDs = @{}
         $CriticalIDs | ForEach-Object {$CriticalPnPIDs[$_]=$null}
         $IgnorePnPIDs = @{}
@@ -64,78 +66,87 @@ Function Compare-OSDriver {
     process {
         $Replace = $false
 
-        Write-Verbose "  Pkg Driver : $($PackageDriver.DriverFile)"
-        $DriverVersion = New-Object System.Version ($PackageDriver.DriverVersion)
-        Write-Verbose "  Pkg Version: $DriverVersion"
+        Write-Verbose " Driver      : $($Driver.DriverFile)"
+        $DriverVersion = New-Object System.Version ($Driver.DriverVersion)
+        Write-Verbose " Drv Version : $DriverVersion"
 
         if ($DriverVersion.CompareTo($CoreVersion) -le 0) {
-            Write-Verbose '    Core Driver has an equal or higher version.'
+            Write-Verbose '  Core Driver has an equal or higher version.'
             $Replace = $true
             $Version = $true
         } elseif ($IgnoreVersion.IsPresent) {
-            Write-Verbose '    Core Driver has a lower version. Continue with PnP check as Version check was set to be ignored.'
+            Write-Verbose '  Core Driver has a lower version. Continue with PnP check as Version check was set to be ignored.'
             $Replace = $true
             $Version = $false
         } else {
-            Write-Verbose '    Core Driver has a lower version. Keep Package Driver.'
+            Write-Verbose '  Core Driver has a lower version. Keep Driver.'
             $Version = $false
         }
 
         if ($Replace){
             # Compare PNPIDs
-            # Every PnP ID from the Package Driver should be supported by the Core Driver as well.
-            # TODO: Add logic for architecture
+            # Every PnP ID from the Package Driver should be supported by the Core Driver.
+            # Outdated HardwareID can be handled using IgnorePnPIDs.
             # TODO: Support for CompatibleIDs ?
             $MissingPnPIDs = @{}
-            $PackageDriver.HardwareIDs | Select-Object -ExpandProperty HardwareID | ForEach-Object {
-                $PnPID = $_
-                if (-Not($CorePNPIDS.ContainsKey($PnPID))){
-                    $MissingPnPIDs[$_] = $null
-
-                    if ($CriticalPnPIDs.ContainsKey($PnPID)) {
-                        Write-Verbose "    PNPID '$_' is not supported by Core Driver and defined as critical. Keep Package Driver."
-                        $Replace = $false
-                    } elseif  (($IgnorePnPIDs.ContainsKey($_)) -and (($CriticalPnPIDs.Count -eq 0) -or (-not($CriticalPnPIDs.ContainsKey($PnPID))))) {
-                        Write-Verbose "    PNPID '$_' is not supported by Core Driver but is defined as non-critical."
-                    } else {
-                        Write-Verbose "    PNPID '$_' is not supported by Core Driver. Keep Package Driver."
-                        $Replace = $false
-                    }
+            $Driver.HardwareIDs | ForEach-Object {
+                $PnPID = $_.HardwareID
+                if ([string]::IsNullOrEmpty($PnPID)) {
+                    Write-Warning "  Empty PnPID: $_"
                 } else {
-                    Write-Verbose "    PNPID '$_' is supported by Core Driver."
+                    # Make sure we check the appropriate architecture as well
+                    if ((($_.Architecture -eq 'x64') -and(-Not($CorePNPIDSx64.ContainsKey($PnPID)))) -or (($_.Architecture -eq 'x86') -and(-Not($CorePNPIDSx86.ContainsKey($PnPID))))) {
+                        $MissingPnPIDs[$_] = $_.HardwareDescription
+
+                        if ($CriticalPnPIDs.Count -gt 0){
+                            if ($CriticalPnPIDs.ContainsKey($PnPID)) {
+                                Write-Verbose "  PnPID '$PnPID' is not supported by Core Driver and defined as critical. Keep Driver."
+                                $Replace = $false
+                            } else {
+                                Write-Verbose "  PnPID '$PnPID' is not supported by Core Driver but is defined as non-critical."
+                            }
+                        } elseif  (($IgnorePnPIDs.ContainsKey($PnPID)) -and (($CriticalPnPIDs.Count -eq 0) -or (-not($CriticalPnPIDs.ContainsKey($PnPID))))) {
+                            Write-Verbose "  PnPID '$PnPID' is not supported by Core Driver but is defined as non-critical."
+                        } else {
+                            Write-Verbose "  PnPID '$PnPID' is not supported by Core Driver. Keep Driver."
+                            $Replace = $false
+                        }
+                    } else {
+                        Write-Verbose "  PnPID '$PnPID' is supported by Core Driver."
+                    }
                 }
             }
 
             if ($Replace) {
                 if ($CriticalPnPIDs.Count -eq 0) {
-                    Write-Verbose "    Core Driver supports all PnP IDs of the Package Driver."
+                    Write-Verbose "  Core Driver supports all PnP IDs of the Driver."
                 } else {
-                    Write-Verbose "    Core Driver supports all critical PnP IDs of the Package Driver."
+                    Write-Verbose "  Core Driver supports all critical PnP IDs of the Driver."
                 }
             }
         }
 
         # Adjust output in pipeline
         if ($PassThru.IsPresent) {
-            if ([bool]($PackageDriver.PSobject.Properties.Name -match "Replace")) {
-                $PackageDriver.Replace = $Replace
+            if ([bool]($Driver.PSobject.Properties.Name -match "Replace")) {
+                $Driver.Replace = $Replace
             } else {
-                $PackageDriver | Add-Member -NotePropertyName 'Replace' -NotePropertyValue $Replace
+                $Driver | Add-Member -NotePropertyName 'Replace' -NotePropertyValue $Replace
             }
 
-            if ([bool]($PackageDriver.PSobject.Properties.Name -match "LowerVersion")) {
-                $PackageDriver.LowerVersion = $Version
+            if ([bool]($Driver.PSobject.Properties.Name -match "LowerVersion")) {
+                $Driver.LowerVersion = $Version
             } else {
-                $PackageDriver | Add-Member -NotePropertyName 'LowerVersion' -NotePropertyValue $Version
+                $Driver | Add-Member -NotePropertyName 'LowerVersion' -NotePropertyValue $Version
             }
 
-            if ([bool]($PackageDriver.PSobject.Properties.Name -match "MissingPnPIDs")) {
-                $PackageDriver.MissingPnPIDs = ($MissingPnPIDs.Keys)
+            if ([bool]($Driver.PSobject.Properties.Name -match "MissingPnPIDs")) {
+                $Driver.MissingPnPIDs = ($MissingPnPIDs.Keys)
             } else {
-                $PackageDriver | Add-Member -NotePropertyName 'MissingPnPIDs' -NotePropertyValue ($MissingPnPIDs.Keys)
+                $Driver | Add-Member -NotePropertyName 'MissingPnPIDs' -NotePropertyValue ($MissingPnPIDs.Keys)
             }
 
-            $PackageDriver
+            $Driver
         } else {
             $Replace
         }

@@ -11,8 +11,15 @@ Locale: en-US
 Powershell Module to handle the tooling around Driver Package management
 
 ## OSDriverPackage Cmdlets
+### [Clean-OSDriverPackage](Clean-OSDriverPackage.md)
+Checks the supplied Driver Package against the Core Driver Package and cleans up all
+unneeded Drivers.
+
 ### [Compare-OSDriver](Compare-OSDriver.md)
 Checks if the supplied Driver can be replaced by the supplied Core Driver.
+
+### [Compare-OSDriverPackage](Compare-OSDriverPackage.md)
+Checks the supplied Driver Package against the Core Driver Package.
 
 ### [Compress-OSDriverPackage](Compress-OSDriverPackage.md)
 Compresses the specified Driver Package into a cab file.
@@ -34,6 +41,9 @@ Gets a Driver Package.
 
 ### [Get-OSDriverPackageDefinition](Get-OSDriverPackageDefinition.md)
 Gets a Driver Package Definition.
+
+### [Get-PnPDevice](Get-PnPDevice.md)
+Returns a list of all registered PnP Devices.
 
 ### [New-OSDriverPackage](New-OSDriverPackage.md)
 Creates a new Driver Package.

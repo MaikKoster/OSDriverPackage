@@ -55,7 +55,7 @@ function Remove-OSDriver {
                 if ($ReferencedFiles -notcontains $DriverSourceFile) {
                     if ($PSCmdlet.ShouldProcess("Removing driver source file '$DriverSourceFile'.")) {
                         Write-Verbose "  Removing driver source file '$DriverSourceFile'."
-                        Remove-Item -Path (Join-Path -Path $ParentPath -ChildPath $DriverSourceFile) -Force
+                        Remove-Item -Path (Join-Path -Path $ParentPath -ChildPath $DriverSourceFile) -Force -ErrorAction SilentlyContinue
                     }
                 } else {
                     Write-Verbose " Can't remove '$DriverSourceFile'. It is still referenced by another Driver."
@@ -68,14 +68,32 @@ function Remove-OSDriver {
             # We can't take care about subfolder though.
             if ((Get-ChildItem -Path $ParentPath -Filter '*.inf').Count -eq 0) {
                 Write-Verbose "  Removing leftover files in '$ParentPath'."
-                Get-ChildItem -Path $ParentPath -File | Remove-Item -Force
+                # Also clean up subfolders, if there are no inf files present
+                if ((Get-ChildItem -Path $ParentPath -Filter '*.inf' -Recurse).Count -eq 0) {
+                    Get-ChildItem -Path $ParentPath | Remove-Item -Force -Recurse
+                } else {
+                    Get-ChildItem -Path $ParentPath -File | Remove-Item -Force
+                }
             }
 
             # Remove the folder if there aren't any files left
             if ((Get-ChildItem -Path $ParentPath -Recurse).Count -eq 0) {
+                $GrandParent = (Get-Item $ParentPath).Parent.FullName
                 if ($PSCmdlet.ShouldProcess("Removing empty folder '$ParentPath'.")) {
                     Write-Verbose "  Removing empty folder '$ParentPath'."
                     Remove-Item -Path $ParentPath -Force
+                }
+
+                # Try to clean up next level parent folder
+                # Assumption: if there are no inf or cab files in the parent or any subfolders,
+                # it's safe to remove as well.
+                # TODO: Validate if we are not removing needed files
+                # TODO: Create recursive function if another level seems necessary
+                if ((Get-ChildItem -Path $GrandParent -include '*.inf', '*.cab' -Recurse).Count -eq 0) {
+                    if ($PSCmdlet.ShouldProcess("Removing folder '$GrandParent'.")) {
+                        Write-Verbose "  Removing folder '$GrandParent'."
+                        Remove-Item -Path $GrandParent -Force -Recurse
+                    }
                 }
             }
         }

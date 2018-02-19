@@ -5,36 +5,30 @@ online version:
 schema: 2.0.0
 ---
 
-# Compare-OSDriver
+# Clean-OSDriverPackage
 
 ## SYNOPSIS
-Checks if the supplied Driver can be replaced by the supplied Core Driver.
+Checks the supplied Driver Package against the Core Driver Package and cleans up all
+unneeded Drivers.
 
 ## SYNTAX
 
 ```
-Compare-OSDriver [-CoreDriver] <PSObject> [-Driver] <PSObject> [[-CriticalIDs] <String[]>]
- [[-IgnoreIDs] <String[]>] [-IgnoreVersion] [-PassThru] [<CommonParameters>]
+Clean-OSDriverPackage [-CoreDriverPackage] <PSObject[]> [-DriverPackage] <PSObject> [[-CriticalIDs] <String[]>]
+ [[-IgnoreIDs] <String[]>] [-IgnoreVersion] [-KeepFolder] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-The Compare-OSDriver CmdLet compares two drivers.
-The supplied driver will be evaluated
-against the supplied Core Driver.
+The Clean-OSDriverPackage CmdLet compares Driver Packages.
+The supplied Driver Package
+will be evaluated against the supplied Core Driver Package.
 
-If it has the same or lower version as the Core Driver, and all PNPIDs are handled by the Core
-Driver as well, the function, it will return $true to indicate, that it can most likely be
-replaced by the Core Driver.
-If not, it will return $false.
+It uses Compare-OSDriverPackage to compare related Drivers in each Driver Package.
+See
+Compare-OSDriverPackage for more details on the evluation details.
 
-If PassThru is supplied, additional information about the evaluation will be added to the Package
-Driver object and passed thru for further actions.
-The new poperties will be:
-Replace: will be set to $true, if the Driver can be safely replaced by the Core Driver.
-$False if not.
-LowerVersion: will be set to $true, if the Core Driver has a higher version.
-$false, if not.
-MissingPnPIDs: List of PnPIDs, that are not referenced by the Core Driver.
+If there are unneeded Drivers, it will temporarily expand the Driver Package, remove all
+unneeded Drivers, update the Driver Package info file, and compress the updated content.
 
 ## EXAMPLES
 
@@ -47,11 +41,11 @@ PS C:\> {{ Add example code here }}
 
 ## PARAMETERS
 
-### -CoreDriver
+### -CoreDriverPackage
 Specifies the Core Driver.
 
 ```yaml
-Type: PSObject
+Type: PSObject[]
 Parameter Sets: (All)
 Aliases:
 
@@ -62,18 +56,18 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Driver
+### -DriverPackage
 Specifies that should be compared
 
 ```yaml
 Type: PSObject
 Parameter Sets: (All)
-Aliases: PackageDriver
+Aliases:
 
 Required: True
 Position: 2
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
@@ -123,9 +117,9 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -PassThru
-Specifies, if the Package Driver should be returned.
-Helpful if used within a pipeline.
+### -KeepFolder
+Specifies if the temporary content of the expanded folder should be kept.
+On default, the content will be removed, after all changes have been applied.
 
 ```yaml
 Type: SwitchParameter
