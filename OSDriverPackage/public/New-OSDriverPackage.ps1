@@ -34,6 +34,13 @@ function New-OSDriverPackage {
         # Recommended to use tags as e.g. Win10-x64, Win7-x86.
         [string[]]$ExcludeOSVersion,
 
+        # Specifies the supported Architectures.
+        # Recommended to use the tags x86, x64 and/or ia64.
+        [string[]]$Architecture,
+
+        # Specifies generic tag(s) that can be used to further identify the Driver Package.
+        [string[]]$Tag,
+
         # Specifies the supported Make(s)/Vendor(s)/Manufacture(s).
         # Use values from Manufacturer property from Win32_ComputerSystem.
         [string[]]$Make,
@@ -85,19 +92,15 @@ function New-OSDriverPackage {
         # Create a Definition file first
         $DefSettings = @{
             Path = $Path
-            PassThru = $true
             OSVersion = $OSVersion
             ExcludeOSVersion = $ExcludeOSVersion
+            Architecture = $Architecture
+            Tag = $Tag
             Make = $Make
             ExcludeMake = $ExcludeMake
             Model = $Model
             ExcludeMode = $ExcludeModel
             URL = $URL
-        }
-
-        $PkgSettings = @{
-            Path = $Path
-            PassThru = $false
         }
 
         if ($Force.IsPresent) { $DefSettings.Force = $true}
@@ -106,12 +109,11 @@ function New-OSDriverPackage {
         Read-OSDriverPackage -Path $Path
 
         Write-Verbose "    Creating new Driver Package Definition file."
-        $DefinitionFile = New-OSDriverPackageDefinition @DefSettings
+        New-OSDriverPackageDefinition @DefSettings
 
         # Compress files
         Write-Verbose "    Compressing Driver Package source content."
-        #$DriverPackagePath = Compress-Folder @PkgSettings
-        Compress-Folder @PkgSettings
+        $DriverPackagePath = Compress-Folder -Path $Path -PassThru
 
         # Remove source files if necessary
         if (-Not($KeepFiles.IsPresent)) {
@@ -122,17 +124,7 @@ function New-OSDriverPackage {
         }
 
         if ($PassThru.IsPresent) {
-            $Result = [PSCustomObject]@{
-                DriverPackage = $DriverPackagePath
-                DriverPackageDefinitionFile = $DefinitionFile
-                DriverPackageSourcePath = ''
-            }
-
-            if ($KeepFiles.IsPresent) {
-                $Result.DriverPackageSourcePath = $Path
-            }
-
-            $Result
+            Get-OSDriverPackage -Path $DriverPackagePath
         }
 
     }

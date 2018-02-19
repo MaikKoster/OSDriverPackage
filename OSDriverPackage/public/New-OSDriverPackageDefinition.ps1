@@ -152,6 +152,14 @@ function New-OSDriverPackageDefinition {
                 $NewDefinition['OSDrivers']['Architecture'] = ''
             }
 
+            if ($null -ne $Architecture) {
+                $NewDefinition['OSDrivers']['Tag'] = $Tag -join ', '
+                Write-Verbose "    Tag = $($NewDefinition['OSDrivers']['Tag'])"
+            } else {
+                $NewDefinition['OSDrivers']['Tag'] = ''
+            }
+
+
             if ($null -ne $Make) {
                 $NewDefinition['OSDrivers']['Make'] = $Make -join ', '
                 Write-Verbose "    Make = $($NewDefinition['OSDrivers']['Make'])"
