@@ -40,6 +40,8 @@ function Get-PnPDevice {
 
         if ($HardwareIDOnly.IsPresent) {
             $PnPEntities | Select-Object -ExpandProperty HardwareID
+        } else {
+            $PnPEntities
         }
     }
 

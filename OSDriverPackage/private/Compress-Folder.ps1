@@ -87,7 +87,10 @@ function Compress-Folder {
                 [void]$DirectiveString.AppendLine('.Set MaxCabinetSize=0')
                 [void]$DirectiveString.AppendLine('.Set MaxDiskFileCount=0')
                 [void]$DirectiveString.AppendLine('.Set MaxDiskSize=0')
-                #Remove Streams from Internet downloads
+
+                # Files downloaded from the internet might be blocked.
+                # As this can cause very hard to diagnose issues especially with SCCM
+                # ensure that all files are unblocked when they are compressed.
                 Get-ChildItem $FolderFullName -Recurse | Unblock-File
                 $DirectivePath = Join-Path -Path $DestinationFolder -ChildPath "$ArchiveBaseName.ddf"
                 Get-ChildItem -Recurse $Folder | Where-Object { -Not($_.psiscontainer)} | Select-Object -ExpandProperty Fullname | Foreach-Object {

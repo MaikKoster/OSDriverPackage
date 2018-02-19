@@ -14,8 +14,7 @@ Copies Driver Packages to a different location.
 
 ```
 Copy-OSDriverPackage [-Path] <String> [-Destination] <String> [[-Name] <String[]>] [[-Tag] <String[]>]
- [[-OSVersion] <String[]>] [[-Make] <String[]>] [[-Model] <String[]>] [-ShowGrid] [-WhatIf] [-Confirm]
- [<CommonParameters>]
+ [[-OSVersion] <String[]>] [[-Make] <String[]>] [[-Model] <String[]>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -147,21 +146,6 @@ Aliases:
 Required: False
 Position: 7
 Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ShowGrid
-Specifies if a grid should be shown to select the Driver Packages to copy.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: False
 Accept pipeline input: False
 Accept wildcard characters: False
 ```

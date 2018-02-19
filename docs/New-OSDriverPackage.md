@@ -15,7 +15,7 @@ Creates a new Driver Package.
 ```
 New-OSDriverPackage [-Path] <String> [[-OSVersion] <String[]>] [[-ExcludeOSVersion] <String[]>]
  [[-Make] <String[]>] [[-ExcludeMake] <String[]>] [[-Model] <String[]>] [[-ExcludeModel] <String[]>]
- [[-URL] <String>] [-ShowGrid] [-SkipPNPDetection] [-Force] [-KeepFiles] [-PassThru] [-WhatIf] [-Confirm]
+ [[-URL] <String>] [-SkipPNPDetection] [-Force] [-KeepFiles] [-PassThru] [-WhatIf] [-Confirm]
  [<CommonParameters>]
 ```
 
@@ -168,21 +168,6 @@ Aliases:
 Required: False
 Position: 8
 Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ShowGrid
-Specifies if a grid should be shown to select the inf files and drivers.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: False
 Accept pipeline input: False
 Accept wildcard characters: False
 ```

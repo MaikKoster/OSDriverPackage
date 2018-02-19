@@ -17,7 +17,7 @@ Creates a new Driver Package definition file.
 New-OSDriverPackageDefinition -DriverPackagePath <String> [-OSVersion <String[]>]
  [-ExcludeOSVersion <String[]>] [-Architecture <String[]>] [-Tag <String[]>] [-ExcludeTag <String[]>]
  [-Make <String[]>] [-ExcludeMake <String[]>] [-Model <String[]>] [-ExcludeModel <String[]>] [-URL <String>]
- [-ShowGrid] [-SkipPNPDetection] [-Force] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+ [-SkipPNPDetection] [-Force] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### NameWithDefinition
@@ -283,21 +283,6 @@ Aliases:
 Required: True
 Position: Named
 Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ShowGrid
-Specifies if a grid should be shown to select the required inf files and drivers.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: PackageWithSettings
-Aliases:
-
-Required: False
-Position: Named
-Default value: False
 Accept pipeline input: False
 Accept wildcard characters: False
 ```

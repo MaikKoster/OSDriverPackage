@@ -39,6 +39,10 @@ Function Clean-OSDriverPackage {
         # Specifies, if the Driver version should be ignored.
         [switch]$IgnoreVersion,
 
+        # Specifies a list of known mappings of Driver inf files.
+        # Some computer vendors tend to rename the original inf files as part of their customization process
+        [hashtable]$Mappings = @{},
+
         # Specifies if the temporary content of the expanded folder should be kept.
         # On default, the content will be removed, after all changes have been applied.
         [switch]$KeepFolder

@@ -13,8 +13,7 @@ Finds specified driver files.
 ## SYNTAX
 
 ```
-Get-OSDriverFile [-Path] <String> [[-Files] <String>] [-RemoveDirectories] [-ShowGrid] [-Expand] [-WhatIf]
- [-Confirm] [<CommonParameters>]
+Get-OSDriverFile [-Path] <String> [[-Files] <String>] [-Expand] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -60,36 +59,6 @@ Aliases:
 Required: False
 Position: 2
 Default value: *.inf
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -RemoveDirectories
-Specifies if the Parent Directory should be removed.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: False
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ShowGrid
-Specifies if a gridview should be shown to select the driver files.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: False
 Accept pipeline input: False
 Accept wildcard characters: False
 ```

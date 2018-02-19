@@ -12,7 +12,7 @@ Function Compare-OSDriverPackage {
         driver, you can use Compare-OSDrive to overwrite this standard behaviour individuall.
 
         Comparison logic is based on the implementation of Compare-OSDriver:
-        If it has the same or lower version as the Core Driver, and all PnPIDs are handled by the Core
+        If it has the same or lower version as the Core Driver, and all Hardware IDs are handled by the Core
         Driver as well, the Replace property will be set to $true to indicate, that it can most likely be
         replaced by the Core Driver. If not, it will return $false.
 
@@ -21,7 +21,7 @@ Function Compare-OSDriverPackage {
 
         - Replace: will be set to $true, if the Driver can be safely replaced by the Core Driver. $False if not.
         - LowerVersion: will be set to $true, if the Core Driver has a higher version. $false, if not.
-        - MissingPnPIDs: List of PnPIDs, that are not referenced by the Core Driver.
+        - MissingHardwareIDs: List of Hardware IDs, that are not referenced by the Core Driver.
     #>
 
     [CmdletBinding()]
@@ -45,7 +45,11 @@ Function Compare-OSDriverPackage {
         [string[]]$IgnoreIDs = @(),
 
         # Specifies, if the Driver version should be ignored.
-        [switch]$IgnoreVersion
+        [switch]$IgnoreVersion,
+
+        # Specifies a list of known mappings of Driver inf files.
+        # Some computer vendors tend to rename the original inf files as part of their customization process
+        [hashtable]$Mappings = @{}
     )
 
     begin {
@@ -60,7 +64,28 @@ Function Compare-OSDriverPackage {
                 foreach ($CoreDriver in $CorePkg.Drivers) {
                     Write-Verbose "    Core Driver : $($CoreDriver.DriverFile)"
                     $CoreDriverName = (Split-Path $CoreDriver.DriverFile -Leaf)
-                    $DriversToProcess = $DriverPackage.Drivers | Where-Object {(Split-Path -Path ($_.DriverFile) -Leaf) -eq $CoreDriverName}
+                    #$DriversToProcess = $DriverPackage.Drivers | Where-Object {(Split-Path -Path ($_.DriverFile) -Leaf) -eq $CoreDriverName}
+                    $DriversToProcess = $DriverPackage.Drivers | Foreach-Object {
+                        $DriverName = Split-Path -Path ($_.DriverFile) -Leaf
+
+                        if ($DriverName -eq $CoreDriverName) {
+                            $_
+                        } elseif ($Mappings.ContainsKey($CoreDriverName)) {
+                            foreach ($Mapping in ($Mappings[$CoreDrivername]) -split ',') {
+                                if ($DriverName -eq $Mapping) {
+                                    $_
+                                }
+                            }
+                        } elseif ($Mappings.ContainsKey($DriverName)) {
+                            foreach ($Mapping in ($Mappings[$DriverName]) -split ',') {
+                                if ($DriverName -eq $Mapping) {
+                                    $_
+                                }
+                            }
+                        }
+
+                        Where-Object {(Split-Path -Path ($_.DriverFile) -Leaf) -eq $CoreDriverName}
+                    }
                     if ($null -eq $DriversToProcess) {
                         Write-Verbose "    No related Driver in '$($DriverPackage.DriverPackage)'."
                     } else {
