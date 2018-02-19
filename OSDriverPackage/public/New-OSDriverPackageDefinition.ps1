@@ -98,10 +98,6 @@ function New-OSDriverPackageDefinition {
         [ValidateNotNullOrEmpty()]
         [System.Collections.Specialized.OrderedDictionary]$Definition,
 
-        # Specifies if a grid should be shown to select the required inf files and drivers.
-        [Parameter(ParameterSetName='PackageWithSettings')]
-        [switch]$ShowGrid,
-
         #Specifies, if the PnP IDs shouldn't be extracted from the Driver Package
         [Parameter(ParameterSetName='PackageWithSettings')]
         [switch]$SkipPNPDetection,

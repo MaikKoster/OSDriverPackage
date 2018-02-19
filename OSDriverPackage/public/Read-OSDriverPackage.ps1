@@ -33,17 +33,30 @@ function Read-OSDriverPackage {
         $DriverPackage = Get-Item -Path $Path
 
         # Temporily expand driver package if necessary
+        $Expanded = $false
         if ($DriverPackage.Extension -eq '.cab') {
-            $DriverPackage = Get-Item (Expand-OSDriverPackage -Path $DriverPackage.FullName -Force -Passthru)
-            $Expanded = $true
+            if (Test-Path ($DriverPackage.Fullname -replace '.cab', '')) {
+                $DriverPackage = ($DriverPackage.Fullname -replace '.cab', '')
+            } else {
+                Write-Verbose "  Temporarily expand Driver Package content."
+                $DriverPackage = Get-Item (Expand-OSDriverPackage -Path $DriverPackage.FullName -Force -Passthru)
+                $Expanded = $true
+            }
         }
 
-        $Drivers = Get-OSDriverFile -Path $DriverPackage.FullName | Get-OSDriver
+        # Get all drivers. Strip of Driver Package Path so Driver path is relative to the package.
+        $Drivers = Get-OSDriverFile -Path $DriverPackage.FullName |
+                    Get-OSDriver |
+                    ForEach-Object {
+                        $_.DriverFile = ($_.DriverFile -replace [regex]::escape("$($DriverPackage.Fullname)\"), '')
+                        $_
+                    }
 
         Write-PackageInfoFile -Path "$($DriverPackage.Fullname).json" -Drivers $Drivers
 
         # Remove temporary content
         if ($Expanded) {
+            Write-Verbose "  Remove temporary content."
             Remove-Item -Path $DriverPackage -Recurse -Force
         }
 

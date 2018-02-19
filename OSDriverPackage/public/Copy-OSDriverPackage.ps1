@@ -46,10 +46,7 @@ function Copy-OSDriverPackage {
         # Filters the Driver Packages by Model(s)
         # Use values from Model property from Win32_ComputerSystem.
         # Wildcards are allowed e.g. *Latitude*
-        [string[]]$Model,
-
-        # Specifies if a grid should be shown to select the Driver Packages to copy.
-        [switch]$ShowGrid
+        [string[]]$Model
     )
 
     begin {
@@ -66,10 +63,6 @@ function Copy-OSDriverPackage {
         Write-Verbose "  Processing path '$Path'."
 
         $DriverPackages = Get-OSDriverPackage -Path $Path -Name $Name -OSVersion $OSVersion -Tag $Tag -Make $Make -Model $Model
-
-        if ($ShowGrid.IsPresent) {
-            $DriverPackages = $DriverPackages | Out-Gridview -Title 'Select Driver Packages' -PassThru
-        }
 
         Foreach ($DriverPackage in $DriverPackages){
             #TODO: Update to use Robocopy. Faster and more reliable

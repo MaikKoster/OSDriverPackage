@@ -60,7 +60,7 @@ Function Clean-OSDriverPackage {
 
         if ($RemoveResults.Count -gt 0) {
             Write-Verbose "  Compared $($ComparisonResults.Count) Drivers, $($RemoveResults.Count) can be removed."
-
+            $Expanded = $false
             # Expand content if necessary
             if (-Not(Test-Path $PkgPath)) {
                 Expand-OSDriverPackage -Path $Pkg.FullName
@@ -69,7 +69,14 @@ Function Clean-OSDriverPackage {
 
             # Keep some data for statistics
             $OldFolderSize = Get-FolderSize -Path $PkgPath
-            $RemoveDriverFiles = $RemoveResults | Select-Object -ExpandProperty DriverFile -Unique
+
+            # Convert relative path into absolute path
+            $RemoveDriverFiles = $RemoveResults |
+                Select-Object -ExpandProperty DriverFile -Unique |
+                ForEach-Object {
+                    Join-Path -Path $PkgPath -ChildPath $_
+                }
+
             foreach ($Remove in $RemoveDriverFiles){
                 Remove-OSDriver -Path $Remove
             }
@@ -81,14 +88,17 @@ Function Clean-OSDriverPackage {
             $Definition = $DriverPackage.Definition
             If ($Definition.Keys -contains 'WQL') {
                 $Section = $Definition['WQL']
+                #TODO Update WQL section
             }
             If ($Definition.Keys -contains 'PNPIDS') {
                 $Section = $Definition['WQL']
-
+                #TODO: Update PNPIDS section
             }
 
-            # Compress new cab file and update statistics
+            # Update statistics
             $NewFolderSize = Get-FolderSize -Path $PkgPath
+
+            # Create new cab file
             $null = Compress-OSDriverPackage -Path "$PkgPath" -Force -RemoveFolder:($Expanded -and (-Not($KeepFolder.IsPresent)))
 
             $Pkg = (Get-Item $DriverPackage.DriverPackage)

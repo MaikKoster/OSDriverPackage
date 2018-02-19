@@ -53,9 +53,6 @@ function New-OSDriverPackage {
         # Specifies the URL for the Driver Package content.
         [string]$URL,
 
-        # Specifies if a grid should be shown to select the inf files and drivers.
-        [switch]$ShowGrid,
-
         # Specifies, if the PnP IDs shouldn't be extracted from the Driver Package
         # Using this switch will prevent the generation of the WQL and PNPIDS sections of
         # the Definition file.
@@ -84,7 +81,6 @@ function New-OSDriverPackage {
 
     process {
         Write-Verbose "  Processing path '$Path'."
-        $DriverPackageName = Split-Path $Path -Leaf
 
         # Create a Definition file first
         $DefSettings = @{
@@ -105,7 +101,6 @@ function New-OSDriverPackage {
         }
 
         if ($Force.IsPresent) { $DefSettings.Force = $true}
-        if ($ShowGrid.IsPresent) { $DefSettings.ShowGrid = $true}
         if ($SkipPNPDetection.IsPresent) { $DefSettings.SkipPNPDetection = $true}
 
         Read-OSDriverPackage -Path $Path

@@ -49,6 +49,7 @@ function Compress-OSDriverPackage {
 
         if ($RemoveFolder.IsPresent) {
             if ($PSCmdlet.ShouldProcess("Removing folder '$Path'.")) {
+                Write-Verbose " Removing folder '$Path'."
                 $null = Remove-Item -Path $Path -Recurse -Force
             }
         }
