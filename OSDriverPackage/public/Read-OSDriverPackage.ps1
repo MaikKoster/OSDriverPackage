@@ -30,13 +30,13 @@ function Read-OSDriverPackage {
     }
 
     process {
-        $DriverPackage = Get-Item -Path $Path
+        $DriverPackage = Get-Item -Path ($Path.Trim("\"))
 
         # Temporily expand driver package if necessary
         $Expanded = $false
-        if ($DriverPackage.Extension -eq '.cab') {
-            if (Test-Path ($DriverPackage.Fullname -replace '.cab', '')) {
-                $DriverPackage = ($DriverPackage.Fullname -replace '.cab', '')
+        if (($DriverPackage.Extension -eq '.cab') -or ($DriverPackage.Extension -eq '.zip')) {
+            if (Test-Path ($DriverPackage.Fullname -replace "$($DriverPackage.Extension)", '')) {
+                $DriverPackage = Get-Item ($DriverPackage.Fullname -replace "$($DriverPackage.Extension)", '')
             } else {
                 Write-Verbose "  Temporarily expand Driver Package content."
                 $DriverPackage = Get-Item (Expand-OSDriverPackage -Path $DriverPackage.FullName -Force -Passthru)

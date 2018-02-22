@@ -45,6 +45,7 @@ Function Clean-OSDriverPackage {
 
         # Specifies if the temporary content of the expanded folder should be kept.
         # On default, the content will be removed, after all changes have been applied.
+        # Helpful when running several iterations.
         [switch]$KeepFolder
     )
 
@@ -55,7 +56,8 @@ Function Clean-OSDriverPackage {
     process {
         $Pkg = (Get-Item -Path ($DriverPackage.DriverPackage))
         $PkgPath = Join-Path -Path ($Pkg.Directory) -ChildPath ($Pkg.BaseName)
-        $OldCabSize = $Pkg.Length
+        $ArchiveType = $Pkg.Extension
+        $OldArchiveSize = $Pkg.Length
         $OldDriverCount = $DriverPackage.Drivers.Count
 
         Write-Verbose "  Processing Driver Package '$($DriverPackage.DriverPackage)'."
@@ -103,17 +105,17 @@ Function Clean-OSDriverPackage {
             $NewFolderSize = Get-FolderSize -Path $PkgPath
 
             # Create new cab file
-            $null = Compress-OSDriverPackage -Path "$PkgPath" -Force -RemoveFolder:($Expanded -and (-Not($KeepFolder.IsPresent)))
+            $null = Compress-OSDriverPackage -Path "$PkgPath" -ArchiveType $ArchiveType -Force -RemoveFolder:($Expanded -and (-Not($KeepFolder.IsPresent)))
 
             $Pkg = (Get-Item $DriverPackage.DriverPackage)
-            $NewCabSize = $Pkg.Length
+            $NewArchiveSize = $Pkg.Length
             $NewPackage = Get-OSDriverPackage -Path $Pkg.FullName -Verbose:$false
             $NewDriverCount = $NewPackage.Drivers.Count
 
             [PSCustomObject]@{
                 DriverPackage = $DriverPackage.DriverPackage
-                OldCabSize = $OldCabSize
-                NewCabSize = $NewCabSize
+                OldArchiveSize = $OldArchiveSize
+                NewArchiveSize = $NewArchiveSize
                 OldFolderSize = $OldFolderSize
                 NewFolderSize = $NewFolderSize
                 OldDriverCount = $OldDriverCount
@@ -124,8 +126,8 @@ Function Clean-OSDriverPackage {
             Write-Verbose "  Compared $($ComparisonResults.Count) Drivers, none can be removed."
             [PSCustomObject]@{
                 DriverPackage = $DriverPackage.DriverPackage
-                OldCabSize = $OldCabSize
-                NewCabSize = $OldCabSize
+                OldArchiveSize = $OldArchiveSize
+                NewArchiveSize = $OldArchiveSize
                 OldFolderSize = $OldFolderSize
                 NewFolderSize = $OldFolderSize
                 OldDriverCount = $OldDriverCount

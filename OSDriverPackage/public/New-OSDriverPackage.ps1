@@ -26,6 +26,11 @@ function New-OSDriverPackage {
         [Alias("FullName")]
         [string]$Path,
 
+        # Specifies the type of archive.
+        # Possible values are CAB or ZIP
+        [ValidateSet('CAB', 'ZIP')]
+        [string]$ArchiveType = 'ZIP',
+
         # Specifies the supported Operating System version(s).
         # Recommended to use tags as e.g. Win10-x64, Win7-x86.
         [string[]]$OSVersion,
@@ -87,6 +92,8 @@ function New-OSDriverPackage {
     }
 
     process {
+        $Path = (Get-Item -Path $Path.Trim("\")).FullName
+
         Write-Verbose "  Processing path '$Path'."
 
         # Create a Definition file first
@@ -113,15 +120,7 @@ function New-OSDriverPackage {
 
         # Compress files
         Write-Verbose "    Compressing Driver Package source content."
-        $DriverPackagePath = Compress-Folder -Path $Path -PassThru
-
-        # Remove source files if necessary
-        if (-Not($KeepFiles.IsPresent)) {
-            if ($PSCmdlet.ShouldProcess("Removing Driver Package source content from '$Path'")) {
-                Write-Verbose "    Removing Driver Package source content from '$Path'"
-                Remove-Item -Path $Path -Recurse -Force
-            }
-        }
+        $DriverPackagePath = Compress-OSDriverPackage -Path $Path -ArchiveType $ArchiveType -Force:($Force.IsPresent) -RemoveFolder:(-Not($KeepFiles.IsPresent)) -Passthru
 
         if ($PassThru.IsPresent) {
             Get-OSDriverPackage -Path $DriverPackagePath

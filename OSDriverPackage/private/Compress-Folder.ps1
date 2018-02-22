@@ -20,7 +20,7 @@ function Compress-Folder {
         # Specifies the type of archive.
         # Possible values are CAB or ZIP
         [ValidateSet('CAB', 'ZIP')]
-        [string]$ArchiveType = 'CAB',
+        [string]$ArchiveType = 'ZIP',
 
         # Specifies if High Compression should be used.
         [switch]$HighCompression,
@@ -54,8 +54,8 @@ function Compress-Folder {
         foreach ($Folder in $Path){
             Write-Verbose "  Processing folder '$Folder'."
             $ArchiveBaseName = (Get-Item $Folder).Name
-            $DestinationFolder = (Get-Item $Folder).Parent.FullName
-            $FolderFullName = (Get-Item $Folder).Fullname
+            $DestinationFolder = (Get-Item $Folder).Parent.FullName.Trim("\")
+            $FolderFullName = (Get-Item $Folder).Fullname.Trim("\")
 
 
             if ($ArchiveType -eq 'ZIP') {
@@ -63,7 +63,11 @@ function Compress-Folder {
                 $ArchiveFullName = Join-Path -Path $DestinationFolder -ChildPath $ArchiveFileName
                 if ($PSCmdlet.ShouldProcess("Creating archive '$ArchiveFullName'.")) {
                     Write-Verbose "  Compressing folder '$FolderFullName' to '$ArchiveFullName'."
-                    Compress-Archive -Path "$FolderFullName\*" -DestinationPath "$ArchiveFullName"
+                    if (Test-Path $ArchiveFullName) {
+                        Remove-Item -path $ArchiveFullName -Force
+                    }
+                    Add-Type -assembly 'System.IO.Compression.Filesystem'
+                    [IO.Compression.ZIPFile]::CreateFromDirectory($FolderFullName, $ArchiveFullName)
                 }
             } else {
                 $ArchiveFileName = "$ArchiveBaseName.cab"
@@ -103,7 +107,6 @@ function Compress-Folder {
                         makecab /F $DirectivePath
                     } else {
                         makecab /F $DirectivePath | Out-Null
-                        #cmd /c "makecab /F ""$DirectivePath""" '>nul' # | Out-Null
                     }
                     if (-Not($KeepMakeCabFile.IsPresent)) {
                         Remove-Item $DirectivePath

@@ -49,7 +49,7 @@ function Expand-OSDriverPackage {
         foreach ($Archive in $Path){
             Write-Verbose "  Expanding Driver Package '$Archive'."
             $ArchiveName = (Get-Item $Archive).BaseName
-            $ArchivePath = (Get-Item $Archive).FullName
+            $ArchivePath = (Get-Item $Archive).FullName.Trim("\")
             if ([string]::IsNullOrEmpty($DestinationPath)) {
                 $ArchiveDestinationPath = Split-Path $ArchivePath -Parent
             }
@@ -67,7 +67,8 @@ function Expand-OSDriverPackage {
 
             if ($PSCmdlet.ShouldProcess("Extracting files to '$ArchivePath' to '$ArchiveDestination'.")) {
                 if ((Get-Item $Archive).Extension -eq ".zip") {
-                    Expand-Archive -Path $ArchivePath -DestinationPath $ArchiveDestination
+                    Add-Type -assembly 'System.IO.Compression.Filesystem'
+                    [IO.Compression.ZipFile]::ExtractToDirectory($ArchivePath, $ArchiveDestination)
                 } else {
                     $null = EXPAND "$ArchivePath" -F:* "$ArchiveDestination"
                 }

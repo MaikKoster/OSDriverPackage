@@ -18,6 +18,11 @@ function Compress-OSDriverPackage {
         [Alias("FullName")]
         [string]$Path,
 
+        # Specifies the type of archive.
+        # Possible values are CAB or ZIP
+        [ValidateSet('CAB', 'ZIP')]
+        [string]$ArchiveType = 'ZIP',
+
         # Specifies if an existing archive should be overwritten
         [switch]$Force,
 
@@ -41,11 +46,20 @@ function Compress-OSDriverPackage {
     process {
         Write-Verbose " Compressing Driver Package '$Path'."
 
-        if ((Test-Path "$Path.cab") -and (-Not($Force.IsPresent))) {
-            throw "Archive '$Path.cab' exists already and '-Force' is not specified."
+        # CAB only supports <2GB
+        if ($ArchiveType -eq 'CAB'){
+            $FolderSize  = Get-FolderSize -Path $Path
+            if ($FolderSize.Bytes -ge 2GB) {
+                Write-Verbose " Driver Package contains more than 2GB of data. Switching to zip."
+                $ArchiveType = 'ZIP'
+            }
         }
 
-        Compress-Folder -Path $Path -HighCompression -PassThru -Verbose:$false
+        if ((Test-Path "$Path.$ArchiveType") -and (-Not($Force.IsPresent))) {
+            throw "Archive '$Path.$ArchiveType' exists already and '-Force' is not specified."
+        }
+
+        Compress-Folder -Path $Path -ArchiveType $ArchiveType -HighCompression -PassThru -Verbose:$false
 
         if ($RemoveFolder.IsPresent) {
             if ($PSCmdlet.ShouldProcess("Removing folder '$Path'.")) {

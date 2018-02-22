@@ -120,7 +120,10 @@ function New-OSDriverPackageDefinition {
 
     process {
         if ([string]::IsNullOrEmpty($FileName)) {
-            $FileName = "$((Get-Item $DriverPackagePath).FullName -replace '.cab', '').txt"
+            $DriverPackage = Get-Item $DriverPackagePath
+            if (($DriverPackage.Extension -eq 'cab') -or ($DriverPackage.Extension -eq 'zip')) {
+                $FileName = "$($DriverPackage.FullName -replace "$($DriverPackage.Extension)", '').txt"
+            }
         }
         Write-Verbose "Start creating new Driver Package Definition file '$Filename'."
 
@@ -204,9 +207,16 @@ function New-OSDriverPackageDefinition {
 
                     # Get all Driver infos and put into hashtable
                     Write-Verbose "  Searching for drivers."
+                    $InfoFilePath = $FileName -replace '.txt', '.json'
+
+                    # Ensure PackageInfo file exists
+                    if (-Not(Test-Path -Path $InfoFilePath)) {
+                        Read-OSDriverPackage -Path $DriverPackagePath
+                    }
+
                     $NewDefinition['WQL'] = [System.Collections.Specialized.OrderedDictionary]@{}
                     $NewDefinition['PNPIDS'] = [System.Collections.Specialized.OrderedDictionary]@{}
-                    $Drivers = Get-OSDriver -Path ($FileName -replace '.txt', '.json')
+                    $Drivers = Get-OSDriver -Path ($InfoFilePath)
                     $Drivers | Select-Object -ExpandProperty HardwareIDs |
                         Select-Object -Property HardwareID,HardwareDescription -Unique |
                         Sort-Object -Property HardwareID | ForEach-Object {

@@ -64,7 +64,7 @@ function Get-OSDriverPackage {
         Write-Verbose "  Processing path '$Path'."
 
         # Generic logic
-        $Root = Get-Item -Path $Path
+        $Root = Get-Item -Path ($Path.Trim("\"))
 
         if ($Root.Extension -eq '.txt'){
             $Root = Get-Item ($Root.FullName -replace '.txt', '.cab')
