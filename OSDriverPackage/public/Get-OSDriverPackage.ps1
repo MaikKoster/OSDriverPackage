@@ -66,15 +66,27 @@ function Get-OSDriverPackage {
         # Generic logic
         $Root = Get-Item -Path ($Path.Trim("\"))
 
-        if ($Root.Extension -eq '.txt'){
-            $Root = Get-Item ($Root.FullName -replace '.txt', '.cab')
+        if ($Root.PSIsContainer) {
+            if (Test-Path "$($Root.FullName).cab") {
+                $Root = Get-Item -Path "$($Root.FullName).cab"
+            } elseif (Test-Path "$($Root.FullName).zip") {
+                $Root = Get-Item -Path "$($Root.FullName).zip"
+            }
         }
 
-        if ($Root.Extension -eq '.cab') {
+        if ($Root.Extension -eq '.txt'){
+            if (Test-Path ($Root.FullName -replace '.txt', '.cab')) {
+                $Root = Get-Item ($Root.FullName -replace '.txt', '.cab')
+            } elseif (Test-Path ($Root.FullName -replace '.txt', '.zip')) {
+                $Root = Get-Item ($Root.FullName -replace '.txt', '.zip')
+            }
+        }
+
+        if (($Root.Extension -eq '.zip') -or ($Root.Extension -eq '.cab')) {
             Write-Verbose " Processing Driver Package '$($Root.Fullname)'"
 
-            $DefinitionFileName = $Root.FullName -replace '.cab', '.txt'
-            $InfoFileName = $Root.FullName -replace '.cab', '.json'
+            $DefinitionFileName = $Root.FullName -replace "$($Root.Extension)", '.txt'
+            $InfoFileName = $Root.FullName -replace "$($Root.Extension)", '.json'
 
             if (Test-Path $DefinitionFileName) {
                 $Definition = Get-OSDriverPackageDefinition -Path ($DefinitionFileName)
@@ -115,7 +127,7 @@ function Get-OSDriverPackage {
 
                 [PSCustomObject]@{
                     DriverPackage = ($Root.FullName)
-                    DefinitionFile = ($Root.FullName -replace '.cab', '.txt')
+                    DefinitionFile = $DefinitionFileName
                     Definition = $Definition
                     Drivers = (Get-OSDriver -Path $InfoFileName)
                 }
