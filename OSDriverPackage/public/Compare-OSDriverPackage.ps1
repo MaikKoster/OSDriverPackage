@@ -72,13 +72,13 @@ Function Compare-OSDriverPackage {
                             $_
                         } elseif ($Mappings.ContainsKey($CoreDriverName)) {
                             foreach ($Mapping in ($Mappings[$CoreDrivername]) -split ',') {
-                                if ($DriverName -eq $Mapping) {
+                                if ($DriverName -like $Mapping) {
                                     $_
                                 }
                             }
                         } elseif ($Mappings.ContainsKey($DriverName)) {
                             foreach ($Mapping in ($Mappings[$DriverName]) -split ',') {
-                                if ($DriverName -eq $Mapping) {
+                                if ($DriverName -like $Mapping) {
                                     $_
                                 }
                             }
