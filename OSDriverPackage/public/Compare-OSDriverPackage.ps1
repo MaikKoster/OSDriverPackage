@@ -34,7 +34,7 @@ Function Compare-OSDriverPackage {
         # Specifies the Driver Package that should be compared
         [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({(Test-Path $_.DriverPackage) -and ((Get-Item $_.DriverPackage).Extension -eq '.cab')})]
+        [ValidateScript({(Test-Path $_.DriverPackage) -and (((Get-Item $_.DriverPackage).Extension -eq '.cab') -or ((Get-Item $_.DriverPackage).Extension -eq '.zip'))})]
         [PSCustomObject]$DriverPackage,
 
         # Specifies a list of critical PnP IDs, that must be covered by the Core Drivers
@@ -47,6 +47,10 @@ Function Compare-OSDriverPackage {
         # Specifies, if the Driver version should be ignored.
         [switch]$IgnoreVersion,
 
+        # Specifies, if the Subsystem part of the Hardware ID should be ignored.
+        # Can also be defined in the Definition file.
+        [switch]$IgnoreSubSys,
+
         # Specifies a list of known mappings of Driver inf files.
         # Some computer vendors tend to rename the original inf files as part of their customization process
         [hashtable]$Mappings = @{}
@@ -54,45 +58,85 @@ Function Compare-OSDriverPackage {
 
     begin {
         Write-Verbose "Start comparing Driver Package."
+
+        # Get Mappings from Driver Package definitions
+        if ($DriverPackage.Definition.Contains('Mappings')){
+            foreach ($Mapping in ($DriverPackage.Definition.Mappings.Keys)) {
+                if ($Mapping -notlike 'Comment_*') {
+                    Write-Verbose "  Adding mapping '$Mapping' = '$($DriverPackage.Definition.Mappings[$Mapping])'."
+                    $Mappings[$Mapping] = $DriverPackage.Definition.Mappings[$Mapping]
+                }
+            }
+        }
+
+        if (-not($IgnoreSubSys)) {
+            # Check if IgnoreSubSys is set
+            if ($DriverPackage.Definition.Contains('OSDrivers')){
+                if ($DriverPackage.Definition.OSDrivers.Contains('IgnoreSubSys')){
+                    if (($DriverPackage.Definition.OSDrivers['IgnoreSubSys'] -eq 'Yes') -or ($DriverPackage.Definition.OSDrivers['IgnoreSubSys'] -eq 'True')) {
+                        $IgnoreSubSys = $true
+                    }
+                }
+            }
+        }
     }
 
     process {
+
         foreach ($CorePkg in $CoreDriverPackage){
-            Write-Verbose " Core Driver Package : $($CorePkg.DriverPackage)"
-            #foreach ($DrvPkg in $DriverPackage) {
-                Write-Verbose "  Driver Package : $($DriverPackage.DriverPackage)"
-                foreach ($CoreDriver in $CorePkg.Drivers) {
-                    Write-Verbose "    Core Driver : $($CoreDriver.DriverFile)"
-                    $CoreDriverName = (Split-Path $CoreDriver.DriverFile -Leaf)
-                    #$DriversToProcess = $DriverPackage.Drivers | Where-Object {(Split-Path -Path ($_.DriverFile) -Leaf) -eq $CoreDriverName}
-                    $DriversToProcess = $DriverPackage.Drivers | Foreach-Object {
-                        $DriverName = Split-Path -Path ($_.DriverFile) -Leaf
-
-                        if ($DriverName -eq $CoreDriverName) {
-                            $_
-                        } elseif ($Mappings.ContainsKey($CoreDriverName)) {
-                            foreach ($Mapping in ($Mappings[$CoreDrivername]) -split ',') {
-                                if ($DriverName -like $Mapping) {
-                                    $_
-                                }
-                            }
-                        } elseif ($Mappings.ContainsKey($DriverName)) {
-                            foreach ($Mapping in ($Mappings[$DriverName]) -split ',') {
-                                if ($DriverName -like $Mapping) {
-                                    $_
-                                }
-                            }
-                        }
-
-                        Where-Object {(Split-Path -Path ($_.DriverFile) -Leaf) -eq $CoreDriverName}
-                    }
-                    if ($null -eq $DriversToProcess) {
-                        Write-Verbose "    No related Driver in '$($DriverPackage.DriverPackage)'."
-                    } else {
-                        $DriversToProcess | Compare-OSDriver -CoreDriver $CoreDriver -PassThru -CriticalIDs $CriticalIDs -IgnoreIDs $IgnoreIDs -IgnoreVersion:$IgnoreVersion
+            Write-Verbose "  Core Driver Package : $($CorePkg.DriverPackage)"
+            Write-Verbose "  Driver Package : $($DriverPackage.DriverPackage)"
+            # Get Mappings from Core Driver Package definitions
+            if ($CorePkg.Definition.Contains('Mappings')){
+                foreach ($Mapping in ($CorePkg.Definition.Mappings.Keys)) {
+                    if ($Mapping -notlike 'Comment_*') {
+                        Write-Verbose "  Adding mapping '$Mapping' = '$($CorePkg.Definition.Mappings[$Mapping])'."
+                        $Mappings[$Mapping] = $CorePkg.Definition.Mappings[$Mapping]
                     }
                 }
-            #}
+            }
+
+            # Check if IgnoreSubSys is set
+            if ($CorePkg.Definition.Contains('OSDrivers')){
+                if ($CorePkg.Definition.OSDrivers.Contains('IgnoreSubSys')){
+                    if (($CorePkg.Definition.OSDrivers['IgnoreSubSys'] -eq 'Yes') -or ($CorePkg.Definition.OSDrivers['IgnoreSubSys'] -eq 'True')) {
+                        $CoreIgnoreSubSys = $true
+                    }
+                }
+            } else {
+                $CoreIgnoreSubSys = $false
+            }
+
+            foreach ($CoreDriver in $CorePkg.Drivers) {
+                Write-Verbose "    Core Driver : $($CoreDriver.DriverFile)"
+                $CoreDriverName = (Split-Path $CoreDriver.DriverFile -Leaf)
+                $DriversToProcess = $DriverPackage.Drivers | Foreach-Object {
+                    $DriverName = Split-Path -Path ($_.DriverFile) -Leaf
+
+                    if ($DriverName -eq $CoreDriverName) {
+                        $_
+                    } elseif ($Mappings.ContainsKey($CoreDriverName)) {
+                        foreach ($Mapping in ($Mappings[$CoreDrivername]) -split ',') {
+                            if ($DriverName -like $Mapping) {
+                                $_
+                            }
+                        }
+                    } elseif ($Mappings.ContainsKey($DriverName)) {
+                        foreach ($Mapping in ($Mappings[$DriverName]) -split ',') {
+                            if ($DriverName -like $Mapping) {
+                                $_
+                            }
+                        }
+                    }
+
+                    Where-Object {(Split-Path -Path ($_.DriverFile) -Leaf) -eq $CoreDriverName}
+                }
+                if ($null -eq $DriversToProcess) {
+                    Write-Verbose "    No related Driver in '$($DriverPackage.DriverPackage)'."
+                } else {
+                    $DriversToProcess | Compare-OSDriver -CoreDriver $CoreDriver -PassThru -CriticalIDs $CriticalIDs -IgnoreIDs $IgnoreIDs -IgnoreVersion:$IgnoreVersion -IgnoreSubSys:($IgnoreSubSys -or $CoreIgnoreSubSys)
+                }
+            }
         }
     }
 

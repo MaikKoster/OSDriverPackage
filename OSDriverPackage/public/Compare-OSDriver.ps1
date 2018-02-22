@@ -41,6 +41,9 @@ Function Compare-OSDriver {
         # Specifies, if the Driver version should be ignored.
         [switch]$IgnoreVersion,
 
+        # Specifies, if the Subsystem part of the Hardware ID should be ignored.
+        [switch]$IgnoreSubSys,
+
         # Specifies, if the Package Driver should be returned.
         # Helpful if used within a pipeline.
         [switch]$PassThru
@@ -108,8 +111,26 @@ Function Compare-OSDriver {
                         } elseif  (($IgnorePnPIDs.ContainsKey($HardwareID)) -and (($CriticalPnPIDs.Count -eq 0) -or (-not($CriticalPnPIDs.ContainsKey($HardwareID))))) {
                             Write-Verbose "  HardwareID '$HardwareID' is not supported by Core Driver but is defined as non-critical."
                         } else {
-                            Write-Verbose "  HardwareID '$HardwareID' is not supported by Core Driver. Keep Driver."
-                            $Replace = $false
+                            if ($IgnoreSubSys.IsPresent) {
+                                if ($HardwareID -like '*&SUBSYS_*') {
+                                    # TODO: Needs some additional testing, if we can safely ignored everything behind SUBSYS
+                                    $TempID = ($HardwareID -replace '(&SUBSYS_).*', '')
+
+                                    if ((($_.Architecture -eq 'x64') -and(-Not($CorePNPIDSx64.ContainsKey($TempID)))) -or (($_.Architecture -eq 'x86') -and(-Not($CorePNPIDSx86.ContainsKey($TempID))))) {
+                                        Write-Verbose "  HardwareID '$HardwareID' is not supported by Core Driver. Keep Driver."
+                                        $Replace = $false
+                                    } else {
+                                        Write-Verbose "  HardwareID '$HardwareID' ($TempID) is supported by Core Driver. SubSys ignored."
+                                    }
+                                } else {
+                                    Write-Verbose "  HardwareID '$HardwareID' is not supported by Core Driver. Keep Driver."
+                                    $Replace = $false
+                                }
+                            } else {
+                                Write-Verbose "  HardwareID '$HardwareID' is not supported by Core Driver. Keep Driver."
+                                $Replace = $false
+                            }
+
                         }
                     } else {
                         Write-Verbose "  HardwareID '$HardwareID' is supported by Core Driver."

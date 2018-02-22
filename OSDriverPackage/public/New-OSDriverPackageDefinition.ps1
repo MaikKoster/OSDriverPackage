@@ -98,14 +98,19 @@ function New-OSDriverPackageDefinition {
         [ValidateNotNullOrEmpty()]
         [System.Collections.Specialized.OrderedDictionary]$Definition,
 
-        #Specifies, if the PnP IDs shouldn't be extracted from the Driver Package
+        # Specifies, if the PnP IDs shouldn't be added to the Driver Package Definition file.
         [Parameter(ParameterSetName='PackageWithSettings')]
         [switch]$SkipPNPDetection,
+
+        # Specifies, if Subsystem part of the Hardware ID should be ignored when comparing Drivers
+        # Will be added to the OSDrivers section of the definitino file.
+        [Parameter(ParameterSetName='PackageWithSettings')]
+        [switch]$IgnoreSubSys,
 
         # Specifies if an existing Driver Package Definition file should be overwritten.
         [switch]$Force,
 
-        # Specifies if the name and path to the new Drive Package Definition file should be returned.
+        # Specifies if the name and path to the new Driver Package Definition file should be returned.
         [switch]$PassThru
     )
 
@@ -121,8 +126,10 @@ function New-OSDriverPackageDefinition {
     process {
         if ([string]::IsNullOrEmpty($FileName)) {
             $DriverPackage = Get-Item $DriverPackagePath
-            if (($DriverPackage.Extension -eq 'cab') -or ($DriverPackage.Extension -eq 'zip')) {
+            if (($DriverPackage.Extension -eq '.cab') -or ($DriverPackage.Extension -eq '.zip')) {
                 $FileName = "$($DriverPackage.FullName -replace "$($DriverPackage.Extension)", '').txt"
+            } else {
+                $FileName = "$($DriverPackage.FullName).txt"
             }
         }
         Write-Verbose "Start creating new Driver Package Definition file '$Filename'."
@@ -138,28 +145,28 @@ function New-OSDriverPackageDefinition {
                 $NewDefinition['OSDrivers']['OSVersion'] = $OSVersion -join ', '
                 Write-Verbose "    OSVersion = $($NewDefinition['OSDrivers']['OSVersion'])"
             } else {
-                $NewDefinition['OSDrivers']['OSVersion'] = ''
+                #$NewDefinition['OSDrivers']['OSVersion'] = ''
             }
 
             if ($null -ne $ExcludeOSVersion) {
                 $NewDefinition['OSDrivers']['ExcludeOSVersion'] = $ExcludeOSVersion -join ', '
                 Write-Verbose "    ExcludeOSVersion = $($NewDefinition['OSDrivers']['ExcludeOSVersion'])"
             } else {
-                $NewDefinition['OSDrivers']['ExcludeOSVersion'] = ''
+                #$NewDefinition['OSDrivers']['ExcludeOSVersion'] = ''
             }
 
             if ($null -ne $Architecture) {
                 $NewDefinition['OSDrivers']['Architecture'] = $Architecture -join ', '
                 Write-Verbose "    Architecture = $($NewDefinition['OSDrivers']['Architecture'])"
             } else {
-                $NewDefinition['OSDrivers']['Architecture'] = ''
+                #$NewDefinition['OSDrivers']['Architecture'] = ''
             }
 
-            if ($null -ne $Architecture) {
+            if ($null -ne $Tag) {
                 $NewDefinition['OSDrivers']['Tag'] = $Tag -join ', '
                 Write-Verbose "    Tag = $($NewDefinition['OSDrivers']['Tag'])"
             } else {
-                $NewDefinition['OSDrivers']['Tag'] = ''
+                #$NewDefinition['OSDrivers']['Tag'] = ''
             }
 
 
@@ -167,35 +174,40 @@ function New-OSDriverPackageDefinition {
                 $NewDefinition['OSDrivers']['Make'] = $Make -join ', '
                 Write-Verbose "    Make = $($NewDefinition['OSDrivers']['Make'])"
             } else {
-                $NewDefinition['OSDrivers']['Make'] = ''
+                #$NewDefinition['OSDrivers']['Make'] = ''
             }
 
             if ($null -ne $ExcludeMake) {
                 $NewDefinition['OSDrivers']['ExcludeMake'] = $ExcludeMake -join ', '
                 Write-Verbose "    ExcludeMake = $($NewDefinition['OSDrivers']['ExcludeMake'])"
             } else {
-                $NewDefinition['OSDrivers']['ExcludeMake'] = ''
+                #$NewDefinition['OSDrivers']['ExcludeMake'] = ''
             }
 
             if ($null -ne $Model) {
                 $NewDefinition['OSDrivers']['Model'] = $Model -join ', '
                 Write-Verbose "    Model = $($NewDefinition['OSDrivers']['Model'])"
             }else {
-                $NewDefinition['OSDrivers']['Model'] = ''
+                #$NewDefinition['OSDrivers']['Model'] = ''
             }
 
             if ($null -ne $ExcludeModel) {
                 $NewDefinition['OSDrivers']['ExcludeModel'] = $ExcludeModel -join ', '
                 Write-Verbose "    ExcludeModel = $($NewDefinition['OSDrivers']['ExcludeModel'])"
             }else {
-                $NewDefinition['OSDrivers']['ExcludeModel'] = ''
+                #$NewDefinition['OSDrivers']['ExcludeModel'] = ''
             }
 
             if (-Not([string]::IsNullOrEmpty($URL))) {
                 $NewDefinition['OSDrivers']['URL'] = $URL -join ', '
                 Write-Verbose "    URL = $($NewDefinition['OSDrivers']['URL'])"
             }else {
-                $NewDefinition['OSDrivers']['URL'] = ''
+                #$NewDefinition['OSDrivers']['URL'] = ''
+            }
+
+            if ($IgnoreSubSys.IsPresent){
+                $NewDefinition['OSDrivers']['IgnoreSubSys'] = 'Yes'
+                Write-Verbose "    IgnoreSubSys = Yes"
             }
 
             if ($PSCmdlet.ParameterSetName -eq 'PackageWithSettings') {

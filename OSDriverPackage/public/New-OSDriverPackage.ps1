@@ -70,6 +70,10 @@ function New-OSDriverPackage {
         # the Definition file.
         [switch]$SkipPNPDetection,
 
+        # Specifies, if Subsystem part of the Hardware ID should be ignored when comparing Drivers
+        # Will be added to the OSDrivers section of the definitino file.
+        [switch]$IgnoreSubSys,
+
         # Specifies if an existing Driver Package should be overwritten.
         [switch]$Force,
 
@@ -108,6 +112,8 @@ function New-OSDriverPackage {
             Model = $Model
             ExcludeMode = $ExcludeModel
             URL = $URL
+            SkipPNPDetection = $SkipPNPDetection
+            IgnoreSubSys = $IgnoreSubSys
         }
 
         if ($Force.IsPresent) { $DefSettings.Force = $true}
