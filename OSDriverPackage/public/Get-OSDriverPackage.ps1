@@ -135,7 +135,16 @@ function Get-OSDriverPackage {
                 Write-Verbose "  Driver Package doesn't match the supplied criteria."
             }
         } else {
-            Get-ChildItem -Path $Path -Include $Name -Recurse -File -Filter '*.cab' | Get-OSDriverPackage
+            $GetParams = @{
+                Path = $Path
+                Include = @('*.cab', '*.zip')
+                Recurse = $true
+                File = $true
+            }
+            if (-Not([string]::IsNullOrEmpty($Name))) {
+                $GetParams.Filter = $Name
+            }
+            Get-ChildItem @GetParams| Get-OSDriverPackage
 
         }
     }

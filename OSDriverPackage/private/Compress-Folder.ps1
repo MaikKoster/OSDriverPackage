@@ -64,9 +64,9 @@ function Compress-Folder {
                 if ($PSCmdlet.ShouldProcess("Creating archive '$ArchiveFullName'.")) {
                     Write-Verbose "  Compressing folder '$FolderFullName' to '$ArchiveFullName'."
                     if (Test-Path $ArchiveFullName) {
-                        Remove-Item -path $ArchiveFullName -Force
+                        Remove-Item -Path $ArchiveFullName -Force
                     }
-                    Add-Type -assembly 'System.IO.Compression.Filesystem'
+                    Add-Type -Assembly 'System.IO.Compression.Filesystem'
                     [IO.Compression.ZIPFile]::CreateFromDirectory($FolderFullName, $ArchiveFullName)
                 }
             } else {
