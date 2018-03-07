@@ -47,10 +47,6 @@ Function Compare-OSDriverPackage {
         # Specifies, if the Driver version should be ignored.
         [switch]$IgnoreVersion,
 
-        # Specifies, if the Subsystem part of the Hardware ID should be ignored.
-        # Can also be defined in the Definition file.
-        [switch]$IgnoreSubSys,
-
         # Specifies a list of known mappings of Driver inf files.
         # Some computer vendors tend to rename the original inf files as part of their customization process
         [hashtable]$Mappings = @{}
@@ -69,12 +65,22 @@ Function Compare-OSDriverPackage {
             }
         }
 
-        if (-not($IgnoreSubSys)) {
-            # Check if IgnoreSubSys is set
+        if ($DriverPackage.Definition.Contains('HardwareIDs')){
+            foreach ($IgnoreID in ($DriverPackage.Definition.HardwareIDs.Keys)) {
+                $IgnoreValue = $DriverPackage.Definition.HardwareIDs[$IgnoreID]
+                if ($IgnoreValue -eq 'Ignore') {
+                    Write-Verbose "  Adding HardwareID '$IgnoreID' to list of IgnoredIDs."
+                    $IgnoreIDs += $IgnoreID
+                }
+            }
+        }
+
+        if (-not($IgnoreVersion)) {
+            # Check if IgnoreVersion is set for the Core Package
             if ($DriverPackage.Definition.Contains('OSDrivers')){
-                if ($DriverPackage.Definition.OSDrivers.Contains('IgnoreSubSys')){
-                    if (($DriverPackage.Definition.OSDrivers['IgnoreSubSys'] -eq 'Yes') -or ($DriverPackage.Definition.OSDrivers['IgnoreSubSys'] -eq 'True')) {
-                        $IgnoreSubSys = $true
+                if ($DriverPackage.Definition.OSDrivers.Contains('IgnoreVersion')){
+                    if (($DriverPackage.Definition.OSDrivers['IgnoreVersion'] -eq 'Yes') -or ($DriverPackage.Definition.OSDrivers['IgnoreVersion'] -eq 'True')) {
+                        $IgnoreVersion = $true
                     }
                 }
             }
@@ -96,15 +102,20 @@ Function Compare-OSDriverPackage {
                 }
             }
 
-            # Check if IgnoreSubSys is set
-            if ($CorePkg.Definition.Contains('OSDrivers')){
-                if ($CorePkg.Definition.OSDrivers.Contains('IgnoreSubSys')){
-                    if (($CorePkg.Definition.OSDrivers['IgnoreSubSys'] -eq 'Yes') -or ($CorePkg.Definition.OSDrivers['IgnoreSubSys'] -eq 'True')) {
-                        $CoreIgnoreSubSys = $true
+            if ($CorePkg.Definition.Contains('HardwareIDs')){
+                foreach ($IgnoreID in ($CorePkg.Definition.HardwareIDs.Keys)) {
+                    $IgnoreValue = $CorePkg.Definition.HardwareIDs[$IgnoreID]
+                    if ($IgnoreValue -eq 'Ignore') {
+                        Write-Verbose "  Adding HardwareID '$IgnoreID' to list of IgnoredIDs."
+                        $IgnoreIDs += $IgnoreID
                     }
                 }
-            } else {
-                $CoreIgnoreSubSys = $false
+            }
+
+            # Built list of all HardwarIDs supported by the CorePackage
+            $AllHardwareIDs = @()
+            foreach ($CoreDriver in $CorePkg.Drivers) {
+                $AllHardwareIDs += $CoreDriver | Select-Object -ExpandProperty HardwareIDs
             }
 
             foreach ($CoreDriver in $CorePkg.Drivers) {
@@ -134,7 +145,7 @@ Function Compare-OSDriverPackage {
                 if ($null -eq $DriversToProcess) {
                     Write-Verbose "    No related Driver in '$($DriverPackage.DriverPackage)'."
                 } else {
-                    $DriversToProcess | Compare-OSDriver -CoreDriver $CoreDriver -PassThru -CriticalIDs $CriticalIDs -IgnoreIDs $IgnoreIDs -IgnoreVersion:$IgnoreVersion -IgnoreSubSys:($IgnoreSubSys -or $CoreIgnoreSubSys)
+                    $DriversToProcess | Compare-OSDriver -CoreDriver $CoreDriver -PassThru -CriticalIDs $CriticalIDs -IgnoreIDs $IgnoreIDs -IgnoreVersion:$IgnoreVersion -PackageHardwareIDs $AllHardwareIDs
                 }
             }
         }

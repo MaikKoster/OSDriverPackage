@@ -26,7 +26,7 @@ Function Clean-OSDriverPackage {
         # Specifies that should be compared
         [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({(Test-Path $_.DriverPackage) -and ((Get-Item $_.DriverPackage).Extension -eq '.cab')})]
+        [ValidateScript({(Test-Path $_.DriverPackage) -and (((Get-Item $_.DriverPackage).Extension -eq '.cab') -or ((Get-Item $_.DriverPackage).Extension -eq '.zip'))})]
         [PSCustomObject]$DriverPackage,
 
         # Specifies a list of critical PnP IDs, that must be covered by the Core Drivers
@@ -56,12 +56,20 @@ Function Clean-OSDriverPackage {
     process {
         $Pkg = (Get-Item -Path ($DriverPackage.DriverPackage))
         $PkgPath = Join-Path -Path ($Pkg.Directory) -ChildPath ($Pkg.BaseName)
-        $ArchiveType = $Pkg.Extension
+        $ArchiveType = $Pkg.Extension -replace '\.' , ''
         $OldArchiveSize = $Pkg.Length
         $OldDriverCount = $DriverPackage.Drivers.Count
 
         Write-Verbose "  Processing Driver Package '$($DriverPackage.DriverPackage)'."
-        $ComparisonResults = Compare-OSDriverPackage @PSBoundParameters
+        $CompareParams = @{
+            CoreDriverPackage = $CoreDriverPackage
+            DriverPackage = $DriverPackage
+            CriticalIDs = $CriticalIDs
+            IgnoreIDs = $IgnoreIDs
+            IgnoreVersion = $IgnoreVersion
+            Mappings = $Mappings
+        }
+        $ComparisonResults = Compare-OSDriverPackage @CompareParams
         $RemoveResults = $ComparisonResults | Where-Object{$_.Replace}
 
         if ($RemoveResults.Count -gt 0) {
