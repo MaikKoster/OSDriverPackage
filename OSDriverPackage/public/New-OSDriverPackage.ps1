@@ -20,7 +20,7 @@ function New-OSDriverPackage {
     param (
         # Specifies the name and path of the Driver Package content
         # The Definition File will be named exactly the same as the Driver Package.
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory, ValueFromPipeline,ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({Test-Path $_})]
         [Alias("FullName")]
