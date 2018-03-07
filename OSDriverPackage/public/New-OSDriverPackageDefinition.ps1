@@ -230,7 +230,8 @@ function New-OSDriverPackageDefinition {
                     $NewDefinition['PNPIDS'] = [System.Collections.Specialized.OrderedDictionary]@{}
                     $Drivers = Get-OSDriver -Path ($InfoFilePath)
                     $Drivers | Select-Object -ExpandProperty HardwareIDs |
-                        Select-Object -Property HardwareID,HardwareDescription -Unique |
+                        Group-Object  -Property HardwareID |
+                        ForEach-Object {$_.Group | Select-Object HardwareID, HardwareDescription, Architecture -first 1} |
                         Sort-Object -Property HardwareID | ForEach-Object {
                             $Count++
                             $HardwareID = $_.HardwareID
