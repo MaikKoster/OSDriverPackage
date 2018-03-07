@@ -11,8 +11,8 @@ InModuleScope "$ModuleName" {
     Describe 'private/Write-PackageInfoFile' {
         $DriverA = [PSCustomObject]@{
             DriverFile = "TestDrive:\Test.inf"
-            DriverVersion = "1.0.0.0"
-            DriverClass = "TestClass"
+            Version = "1.0.0.0"
+            Class = "TestClass"
             HardwareIDs = [PSCustomObject]@{
                 HardwareID = "PCI\TestID"
                 HardwareDescription = "Test hardware"

@@ -18,7 +18,7 @@ InModuleScope "$ModuleName" {
                     Version = '1.1.0.1'
                     HardwareID = 'PCI\VEN_1234&DEV_6789'
                 })
-            DriverSourceFiles = ''
+            SourceFiles = ''
         }
         $DriverB = [PSCustomObject]@{
             DriverFile = 'C:\temp\DriverB.inf'
@@ -26,7 +26,7 @@ InModuleScope "$ModuleName" {
                 Version = '1.1.0.0'
                 HardwareID = 'PCI\VEN_1234&DEV_5678'
             }
-            DriverSourceFiles = ''
+            SourceFiles = ''
         }
         $DriverC = [PSCustomObject]@{
             DriverFile = 'C:\temp\DriverC.inf'
@@ -34,7 +34,7 @@ InModuleScope "$ModuleName" {
                 Version = '1.2.0.1'
                 HardwareID = 'PCI\VEN_1234&DEV_5678'
             }
-            DriverSourceFiles = ''
+            SourceFiles = ''
         }
         $DriverD = [PSCustomObject]@{
             DriverFile = 'C:\temp\DriverD.inf'
@@ -42,7 +42,7 @@ InModuleScope "$ModuleName" {
                 Version = '1.1.0.0'
                 HardwareID = 'PCI\VEN_1234&DEV_3456'
             }
-            DriverSourceFiles = ''
+            SourceFiles = ''
         }
 
         It 'Throw exception if no Core Driver supplied.' {

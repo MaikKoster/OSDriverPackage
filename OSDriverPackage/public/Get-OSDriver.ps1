@@ -43,13 +43,18 @@ function Get-OSDriver {
                 $First = $DriverInfo | Select-Object -First 1
 
                 # Get SourceDiskFiles
-                $DriverSourceFiles = Get-DriverSourceDiskFile -Path $Path.ToString()
+                # Remove duplicates
+                $DriverSourceFiles = Get-DriverSourceDiskFile -Path $Path.ToString() -Verbose:$false | Group-Object  HardwareID, Architecture | ForEach-Object {$_.Group | Select-Object -First 1} | Sort-Object HardwareID
                 [PSCustomObject]@{
                     DriverFile = $Path #($DriverFile.FullName)
-                    DriverClass = ($First.ClassName)
-                    DriverVersion = ($First.Version)
-                    DriverSourceFiles = $DriverSourceFiles
-                    HardwareIDs = @($DriverInfo | ForEach-Object {
+                    ClassName = ($First.ClassName)
+                    ClassGuid = ($First.ClassGuid)
+                    ProviderName = ($First.ProviderName)
+                    ManufacturerName = ($First.ManufacturerName)
+                    Version = ($First.Version)
+                    Date = ($First.Date)
+                    SourceFiles = $DriverSourceFiles
+                    HardwareIDs = @($DriverInfo  | ForEach-Object {
                         $HardwareID = [PSCustomObject]@{
                             HardwareID = ($_.HardwareId)
                             HardwareDescription = ($_.HardwareDescription)
