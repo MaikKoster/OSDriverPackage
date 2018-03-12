@@ -44,7 +44,7 @@ function Get-OSDriver {
 
                 # Get SourceDiskFiles
                 # Remove duplicates
-                $DriverSourceFiles = Get-DriverSourceDiskFile -Path $Path.ToString() -Verbose:$false | Group-Object  HardwareID, Architecture | ForEach-Object {$_.Group | Select-Object -First 1} | Sort-Object HardwareID
+                $DriverSourceFiles = Get-DriverSourceDiskFile -Path $Path.ToString() -Verbose:$false
                 [PSCustomObject]@{
                     DriverFile = $Path #($DriverFile.FullName)
                     ClassName = ($First.ClassName)
@@ -68,7 +68,7 @@ function Get-OSDriver {
                             $HardwareID.Architecture = 'ia64'
                         }
                         $HardwareID
-                    })
+                    } | Group-Object  HardwareID, Architecture | ForEach-Object {$_.Group | Select-Object -First 1} | Sort-Object HardwareID)
                 }
             }
         } elseif ($Driver.Extension -eq '.json') {

@@ -43,17 +43,17 @@ function Get-OSDriverFile {
         $DriverPackage = Get-Item -Path $Path
         $DriverFiles = @()
         if ($DriverPackage.PSIsContainer) {
-            $DriverFiles = Get-ChildItem -Path $Path -Recurse -File -Include $Files
+            $DriverFiles = Get-ChildItem -Path $Path -Recurse -File -Filter $Files
 
         } elseif ($DriverPackage.Extension -eq '.cab') {
             if (Test-Path ($DriverPackage.FullName -replace '.cab', '')) {
-                $DriverFiles = Get-ChildItem -Path ($DriverPackage.FullName -replace '.cab', '') -Recurse -File -Include $Files
+                $DriverFiles = Get-ChildItem -Path ($DriverPackage.FullName -replace '.cab', '') -Recurse -File -Filter $Files
 
             } elseif ($Expand.IsPresent) {
                 Write-Verbose '    Temporarily expanding content of Driver Package.'
                 $ExpandedPath = Expand-OSDriverPackage -Path $Path -Force -PassThru
 
-                $DriverFiles = Get-ChildItem -Path $ExpandedPath -Recurse -File -Include $Files
+                $DriverFiles = Get-ChildItem -Path $ExpandedPath -Recurse -File -Filter $Files
 
                 Write-Verbose "    Removing temporary content."
                 Remove-Item -Path $ExpandedPath -Recurse -Force

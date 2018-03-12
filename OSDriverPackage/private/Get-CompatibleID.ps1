@@ -45,20 +45,20 @@ function Get-CompatibleID {
 
             if (-Not([string]::IsNullOrEmpty($Vendor))) {
                 if (-Not([string]::IsNullOrEmpty($Device))) {
-                    "PCI\$Vendor&$Device"
+                    "$Bus\$Vendor&$Device"
                     if (-Not([string]::IsNullOrEmpty($Revision))) {
-                        "PCI\$Vendor&$Device&$Revision"
+                        "$Bus\$Vendor&$Device&$Revision"
                         # if (-Not([string]::IsNullOrEmpty($Subsystem))) {
                         #     "PCI\$Vendor&$Device&$Subsystem&$Revision"
                         # }
                     }
                     if (-Not([string]::IsNullOrEmpty($Subsystem))) {
-                        "PCI\$Vendor&$Device&$Subsystem"
+                        "$Bus\$Vendor&$Device&$Subsystem"
                     }
                 }
             }
 
-        } elseif ($Bus -eq 'PCI') {
+        } elseif ($Bus -eq 'USB') {
             # Standard USB Identifiers - https://docs.microsoft.com/en-us/windows-hardware/drivers/install/standard-usb-identifiers
             # Single interface devices
             # USB\VID_v(4)&PID_d(4)&REV_r(4)
@@ -93,11 +93,58 @@ function Get-CompatibleID {
 
             if (-Not([string]::IsNullOrEmpty($Vendor))) {
                 if (-Not([string]::IsNullOrEmpty($Product))) {
-                    "USB\$Vendor&$Product"
+                    "$Bus\$Vendor&$Product"
                 }
             }
+        } elseif ($Bus -in 'INTELAUDIO','HDAUDIO') {
+            #INTELAUDIO\FUNC_d(2)&VEN_v(4)&DEV_d(4)
+            #HDAUDIO\FUNC_d(2)&VEN_v(4)&DEV_d(4)
+
+            $Components = $Identifier[1].Split('&')
+            foreach ($Component In $Components) {
+                if ($Component -like 'FUNC_*') {
+                    $Func = $Component
+                } elseif ($Component -like 'VEN_*') {
+                    $Vendor = $Component
+                } elseif ($Component -like 'DEV_*') {
+                    $Device = $Component
+                } elseif ($Component -like 'SUBSYS_*') {
+                    $Subsystem = $Component
+                } elseif ($Component -like 'REV_*') {
+                    $Revision = $Component
+                } else {
+                    Write-Verbose "Unable to identify Device component '$Component' from HardwareID '$HardwareID'."
+                }
+            }
+
+            if (-Not([string]::IsNullOrEmpty($Func))) {
+                if (-Not([string]::IsNullOrEmpty($Vendor))) {
+                    if (-Not([string]::IsNullOrEmpty($Device))) {
+                        "$Bus\$Func&$Vendor&$Device"
+                        if (-Not([string]::IsNullOrEmpty($Revision))) {
+                            "$Bus\$Func&$Vendor&$Device&$Revision"
+                        }
+                    }
+                }
+            }
+
+        } elseif ($Bus -eq 'HID') {
+            #TODO: Evalute HID structure
+
+        } elseif ($Bus -eq 'ACPI') {
+            # Nothing to do here
+        } elseif ($Bus -eq 'PSMP') {
+            # Nothing to do here
+        } elseif ($Bus -eq 'PTL') {
+            # Nothing to do here
+        } elseif ($Bus -eq 'root') {
+            # Nothing to do here
+        } elseif ($Bus -eq 'SNXPCARD_ENUM') {
+            # Nothing to do here
+        } elseif ($Bus -like '{*}') {
+            # Nothing to do here
         } else {
-            # $HardwareID
+            Write-Verbose "Unknown Bus type '$Bus' from HardwareID '$HardwareID'"
         }
 
         #Always return the input object

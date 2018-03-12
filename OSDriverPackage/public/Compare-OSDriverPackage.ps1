@@ -54,7 +54,6 @@ Function Compare-OSDriverPackage {
 
     begin {
         Write-Verbose "Start comparing Driver Package."
-
         # Get Mappings from Driver Package definitions
         if ($DriverPackage.Definition.Contains('Mappings')){
             foreach ($Mapping in ($DriverPackage.Definition.Mappings.Keys)) {
@@ -76,10 +75,11 @@ Function Compare-OSDriverPackage {
         }
 
         if (-not($IgnoreVersion)) {
-            # Check if IgnoreVersion is set for the Core Package
+            # Check if IgnoreVersion is set for the Driver Package
             if ($DriverPackage.Definition.Contains('OSDrivers')){
                 if ($DriverPackage.Definition.OSDrivers.Contains('IgnoreVersion')){
                     if (($DriverPackage.Definition.OSDrivers['IgnoreVersion'] -eq 'Yes') -or ($DriverPackage.Definition.OSDrivers['IgnoreVersion'] -eq 'True')) {
+                        Write-Verbose "Driver package is configured to ignore versions."
                         $IgnoreVersion = $true
                     }
                 }
@@ -112,46 +112,83 @@ Function Compare-OSDriverPackage {
                 }
             }
 
-            # Built list of all HardwarIDs supported by the CorePackage
-            $AllHardwareIDs = @()
-            foreach ($CoreDriver in $CorePkg.Drivers) {
-                $AllHardwareIDs += $CoreDriver | Select-Object -ExpandProperty HardwareIDs
+            # Check if IgnoreVersion is set for the Core Package
+            if ($CorePkg.Definition.Contains('OSDrivers')){
+                if ($CorePkg.Definition.OSDrivers.Contains('IgnoreVersion')){
+                    if (($CorePkg.Definition.OSDrivers['IgnoreVersion'] -eq 'Yes') -or ($CorePkg.Definition.OSDrivers['IgnoreVersion'] -eq 'True')) {
+                        Write-Verbose "Core Driver package is configured to ignore versions."
+                        $IgnoreCoreVersion = $true
+                    }
+                }
             }
 
-            foreach ($CoreDriver in $CorePkg.Drivers) {
-                Write-Verbose "    Core Driver : $($CoreDriver.DriverFile)"
-                $CoreDriverName = (Split-Path $CoreDriver.DriverFile -Leaf)
-                $DriversToProcess = $DriverPackage.Drivers | Foreach-Object {
-                    $DriverName = Split-Path -Path ($_.DriverFile) -Leaf
+            foreach ($Driver in $DriverPackage.Drivers) {
+                Write-Verbose "    Driver : $($Driver.Driverfile)"
+                $Drivername = (Split-Path $Driver.DriverFile -Leaf)
+                $CoreDriver = $null
+                $CoreDrivers = $CorePkg.Drivers | Foreach-Object {
+                    $CoreDriverName = (Split-Path $_.DriverFile -Leaf)
 
+                    $Found = $false
                     if ($DriverName -eq $CoreDriverName) {
+                        $Found = $true
+                        $CoreDriver = $_
                         $_
+                        #Write-Verbose "Found matching Driver '$($_.DriverFile)'."
                     } elseif ($Mappings.ContainsKey($CoreDriverName)) {
                         foreach ($Mapping in ($Mappings[$CoreDrivername]) -split ',') {
                             if ($DriverName -like $Mapping) {
+                                $Found = $true
                                 $_
+                                #Write-Verbose "Found matching Driver '$($_.DriverFile)'."
                             }
                         }
                     } elseif ($Mappings.ContainsKey($DriverName)) {
                         foreach ($Mapping in ($Mappings[$DriverName]) -split ',') {
                             if ($DriverName -like $Mapping) {
+                                $Found = $true
                                 $_
+                                #Write-Verbose "Found matching Driver '$($_.DriverFile)'."
                             }
                         }
                     }
 
-                    Where-Object {(Split-Path -Path ($_.DriverFile) -Leaf) -eq $CoreDriverName}
+                    if ((-Not($Found)) -and ($Driver.ClassName -eq $_.ClassName) -and ($Driver.ProviderName -eq $_.ProviderName)) {
+                        $_
+                        #Write-Verbose "Found matching Driver '$($_.DriverFile)'."
+                    }
                 }
-                if ($null -eq $DriversToProcess) {
+
+                if ($CoreDrivers.Count -eq 0) {
                     Write-Verbose "    No related Driver in '$($DriverPackage.DriverPackage)'."
                 } else {
-                    $DriversToProcess | Compare-OSDriver -CoreDriver $CoreDriver -PassThru -CriticalIDs $CriticalIDs -IgnoreIDs $IgnoreIDs -IgnoreVersion:$IgnoreVersion -PackageHardwareIDs $AllHardwareIDs
+                    # Prepare Drivers
+                    $PackageHardwareIDs = @()
+                    if ($IgnoreVersion -or $IgnoreCoreVersion) {
+                        # Version is irrelevant. Get a unique list of Hardware IDs supported by the Core Drivers related to this Driver
+                        $PackageHardwareIDs = $CoreDrivers | Select-Object -ExpandProperty HardwareIDs | Group-Object -Property HardwareID, Architecture | ForEach-Object {$_.Group | Select-Object -First 1}
+                    } else {
+                        $DriverVersion = New-Object System.Version ($Driver.Version)
+                        $PackageHardwareIDs = $CoreDrivers | Foreach-Object {
+                            $CoreVersion = New-Object System.Version ($_.Version)
+                            if ($DriverVersion.CompareTo($CoreVersion) -le 0) {
+                                $_
+                            }
+                        } | Select-Object -ExpandProperty HardwareIDs | Group-Object -Property HardwareID, Architecture | ForEach-Object {$_.Group | Select-Object -first 1}
+                    }
+
+                    if ($null -eq $CoreDriver) {
+                        $CoreDriver = $CoreDrivers | Select-Object -First 1
+                    }
+                    Compare-OSDriver -CoreDriver $CoreDriver -Driver $Driver -PassThru -CriticalIDs $CriticalIDs -IgnoreIDs $IgnoreIDs -IgnoreVersion:($IgnoreVersion -or $IgnoreCoreVersion) -PackageHardwareIDs $PackageHardwareIDs
                 }
             }
         }
     }
 
     end {
+        # Return list of Result objects. Original DriverPackage will be updated as well.
+        $DriverPackage.Drivers | Where-Object {$null -ne $_.Replace}
         Write-Verbose "Finished comparing Driver Package."
     }
 }

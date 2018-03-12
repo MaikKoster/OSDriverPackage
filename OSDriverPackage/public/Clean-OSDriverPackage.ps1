@@ -54,6 +54,7 @@ Function Clean-OSDriverPackage {
     }
 
     process {
+
         $Pkg = (Get-Item -Path ($DriverPackage.DriverPackage))
         $PkgPath = Join-Path -Path ($Pkg.Directory) -ChildPath ($Pkg.BaseName)
         $ArchiveType = $Pkg.Extension -replace '\.' , ''
@@ -70,6 +71,8 @@ Function Clean-OSDriverPackage {
             Mappings = $Mappings
         }
         $ComparisonResults = Compare-OSDriverPackage @CompareParams
+
+        # Get results that can be removed
         $RemoveResults = $ComparisonResults | Where-Object{$_.Replace}
 
         if ($RemoveResults.Count -gt 0) {

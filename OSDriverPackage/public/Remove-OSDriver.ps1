@@ -48,10 +48,10 @@ function Remove-OSDriver {
             # Get the related files of all other drivers in the same folder
             $ReferencedFiles = Get-ChildItem -Path $ParentPath -Filter '*.inf' |
                                 Where-Object {$_.Name -ne $DriverFileName} |
-                                Foreach-Object {Get-DriverSourceDiskFile -Path $_.FullName} |
+                                Foreach-Object {Get-DriverSourceDiskFile -Path $_.FullName -Verbose:$false }|
                                 Select-Object -Unique
 
-            foreach ($DriverSourceFile in $DriverInfo.DriverSourceFiles) {
+            foreach ($DriverSourceFile in $DriverInfo.SourceFiles) {
                 if ($ReferencedFiles -notcontains $DriverSourceFile) {
                     if ($PSCmdlet.ShouldProcess("Removing driver source file '$DriverSourceFile'.")) {
                         Write-Verbose "  Removing driver source file '$DriverSourceFile'."
