@@ -13,9 +13,10 @@ Creates a new Driver Package.
 ## SYNTAX
 
 ```
-New-OSDriverPackage [-Path] <String> [[-OSVersion] <String[]>] [[-ExcludeOSVersion] <String[]>]
- [[-Make] <String[]>] [[-ExcludeMake] <String[]>] [[-Model] <String[]>] [[-ExcludeModel] <String[]>]
- [[-URL] <String>] [-SkipPNPDetection] [-Force] [-KeepFiles] [-PassThru] [-WhatIf] [-Confirm]
+New-OSDriverPackage [-Path] <String> [[-ArchiveType] <String>] [[-OSVersion] <String[]>]
+ [[-ExcludeOSVersion] <String[]>] [[-Architecture] <String[]>] [[-Tag] <String[]>] [[-Make] <String[]>]
+ [[-ExcludeMake] <String[]>] [[-Model] <String[]>] [[-ExcludeModel] <String[]>] [[-URL] <String>]
+ [-SkipPNPDetection] [-IgnoreSubSys] [-Force] [-KeepFiles] [-PassThru] [-WhatIf] [-Confirm]
  [<CommonParameters>]
 ```
 
@@ -55,6 +56,22 @@ Aliases: FullName
 Required: True
 Position: 1
 Default value: None
+Accept pipeline input: True (ByPropertyName, ByValue)
+Accept wildcard characters: False
+```
+
+### -ArchiveType
+Specifies the type of archive.
+Possible values are CAB or ZIP
+
+```yaml
+Type: String
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: 2
+Default value: ZIP
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
@@ -70,7 +87,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 2
+Position: 3
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -87,7 +104,38 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 3
+Position: 4
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Architecture
+Specifies the supported Architectures.
+Recommended to use the tags x86, x64 and/or ia64.
+
+```yaml
+Type: String[]
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: 5
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Tag
+Specifies generic tag(s) that can be used to further identify the Driver Package.
+
+```yaml
+Type: String[]
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: 6
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -103,7 +151,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 4
+Position: 7
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -119,7 +167,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 5
+Position: 8
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -135,7 +183,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 6
+Position: 9
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -151,7 +199,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 7
+Position: 10
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -166,7 +214,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 8
+Position: 11
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -176,6 +224,22 @@ Accept wildcard characters: False
 Specifies, if the PnP IDs shouldn't be extracted from the Driver Package
 Using this switch will prevent the generation of the WQL and PNPIDS sections of
 the Definition file.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: False
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -IgnoreSubSys
+Specifies, if Subsystem part of the Hardware ID should be ignored when comparing Drivers
+Will be added to the OSDrivers section of the definitino file.
 
 ```yaml
 Type: SwitchParameter

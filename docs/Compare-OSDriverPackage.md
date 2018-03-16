@@ -14,7 +14,8 @@ Checks the supplied Driver Package against the Core Driver Package.
 
 ```
 Compare-OSDriverPackage [-CoreDriverPackage] <PSObject[]> [-DriverPackage] <PSObject>
- [[-CriticalIDs] <String[]>] [[-IgnoreIDs] <String[]>] [-IgnoreVersion] [<CommonParameters>]
+ [[-CriticalIDs] <String[]>] [[-IgnoreIDs] <String[]>] [-IgnoreVersion] [[-Mappings] <Hashtable>]
+ [[-Architecture] <String>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -29,7 +30,7 @@ To compare drivers where a vendor uses different filenames for the same
 driver, you can use Compare-OSDrive to overwrite this standard behaviour individuall.
 
 Comparison logic is based on the implementation of Compare-OSDriver:
-If it has the same or lower version as the Core Driver, and all PnPIDs are handled by the Core
+If it has the same or lower version as the Core Driver, and all Hardware IDs are handled by the Core
 Driver as well, the Replace property will be set to $true to indicate, that it can most likely be
 replaced by the Core Driver.
 If not, it will return $false.
@@ -42,7 +43,7 @@ The new poperties will be:
 $False if not.
 - LowerVersion: will be set to $true, if the Core Driver has a higher version.
 $false, if not.
-- MissingPnPIDs: List of PnPIDs, that are not referenced by the Core Driver.
+- MissingHardwareIDs: List of Hardware IDs, that are not referenced by the Core Driver.
 
 ## EXAMPLES
 
@@ -127,6 +128,37 @@ Aliases:
 Required: False
 Position: Named
 Default value: False
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Mappings
+Specifies a list of known mappings of Driver inf files.
+Some computer vendors tend to rename the original inf files as part of their customization process
+
+```yaml
+Type: Hashtable
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: 5
+Default value: @{}
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Architecture
+Specifies if the Driver Package is targetting a single architecture only or all
+
+```yaml
+Type: String
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: 6
+Default value: All
 Accept pipeline input: False
 Accept wildcard characters: False
 ```

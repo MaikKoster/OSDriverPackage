@@ -13,8 +13,8 @@ Compresses the specified Driver Package into a cab file.
 ## SYNTAX
 
 ```
-Compress-OSDriverPackage [-Path] <String> [-Force] [-RemoveFolder] [-Passthru] [-WhatIf] [-Confirm]
- [<CommonParameters>]
+Compress-OSDriverPackage [-Path] <String> [[-ArchiveType] <String>] [-Force] [-RemoveFolder] [-Passthru]
+ [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -43,6 +43,22 @@ Required: True
 Position: 1
 Default value: None
 Accept pipeline input: True (ByPropertyName, ByValue)
+Accept wildcard characters: False
+```
+
+### -ArchiveType
+Specifies the type of archive.
+Possible values are CAB or ZIP
+
+```yaml
+Type: String
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: 2
+Default value: ZIP
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 

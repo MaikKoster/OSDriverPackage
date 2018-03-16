@@ -46,7 +46,11 @@ Function Clean-OSDriverPackage {
         # Specifies if the temporary content of the expanded folder should be kept.
         # On default, the content will be removed, after all changes have been applied.
         # Helpful when running several iterations.
-        [switch]$KeepFolder
+        [switch]$KeepFolder,
+
+        # Specifies if the Driver Package is targetting a single architecture only or all
+        [ValidateSet('All', 'x86', 'x64', 'ia64')]
+        [string]$Architecture = 'All'
     )
 
     begin {
@@ -69,11 +73,18 @@ Function Clean-OSDriverPackage {
             IgnoreIDs = $IgnoreIDs
             IgnoreVersion = $IgnoreVersion
             Mappings = $Mappings
+            Architecture = $Architecture
         }
         $ComparisonResults = Compare-OSDriverPackage @CompareParams
 
         # Get results that can be removed
-        $RemoveResults = $ComparisonResults | Where-Object{$_.Replace}
+        $RemoveResults = @($DriverPackage.Drivers | Where-Object{$_.Replace})
+
+        # Remove based on architecture, if requested
+        if ($Architecture -ne 'All') {
+            # Remove all Drivers that don't have at least one instance of the requested architecture
+            $RemoveResults += $DriverPackage.Drivers | Where-Object {((($_.HardwareIDs | Group-Object -Property 'Architecture' | Where-Object {$_.Name -eq "$Architecture"}).Count -eq 0) -and (-Not($_.Replace)))}
+        }
 
         if ($RemoveResults.Count -gt 0) {
             Write-Verbose "  Compared $($ComparisonResults.Count) Drivers, $($RemoveResults.Count) can be removed."

@@ -89,7 +89,7 @@ function Remove-OSDriver {
                 # it's safe to remove as well.
                 # TODO: Validate if we are not removing needed files
                 # TODO: Create recursive function if another level seems necessary
-                if ((Get-ChildItem -Path $GrandParent -include '*.inf', '*.cab' -Recurse).Count -eq 0) {
+                if ((Get-ChildItem -Path $GrandParent -include '*.inf', '*.cab', '*.zip' -Recurse).Count -eq 0) {
                     if ($PSCmdlet.ShouldProcess("Removing folder '$GrandParent'.")) {
                         Write-Verbose "  Removing folder '$GrandParent'."
                         Remove-Item -Path $GrandParent -Force -Recurse

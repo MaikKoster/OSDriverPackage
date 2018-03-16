@@ -17,7 +17,7 @@ Creates a new Driver Package definition file.
 New-OSDriverPackageDefinition -DriverPackagePath <String> [-OSVersion <String[]>]
  [-ExcludeOSVersion <String[]>] [-Architecture <String[]>] [-Tag <String[]>] [-ExcludeTag <String[]>]
  [-Make <String[]>] [-ExcludeMake <String[]>] [-Model <String[]>] [-ExcludeModel <String[]>] [-URL <String>]
- [-SkipPNPDetection] [-Force] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+ [-SkipPNPDetection] [-IgnoreSubSys] [-Force] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### NameWithDefinition
@@ -288,7 +288,23 @@ Accept wildcard characters: False
 ```
 
 ### -SkipPNPDetection
-Specifies, if the PnP IDs shouldn't be extracted from the Driver Package
+Specifies, if the PnP IDs shouldn't be added to the Driver Package Definition file.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: PackageWithSettings
+Aliases:
+
+Required: False
+Position: Named
+Default value: False
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -IgnoreSubSys
+Specifies, if Subsystem part of the Hardware ID should be ignored when comparing Drivers
+Will be added to the OSDrivers section of the definitino file.
 
 ```yaml
 Type: SwitchParameter
@@ -318,7 +334,7 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Specifies if the name and path to the new Drive Package Definition file should be returned.
+Specifies if the name and path to the new Driver Package Definition file should be returned.
 
 ```yaml
 Type: SwitchParameter

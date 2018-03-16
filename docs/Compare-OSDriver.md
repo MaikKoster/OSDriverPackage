@@ -14,7 +14,8 @@ Checks if the supplied Driver can be replaced by the supplied Core Driver.
 
 ```
 Compare-OSDriver [-CoreDriver] <PSObject> [-Driver] <PSObject> [[-CriticalIDs] <String[]>]
- [[-IgnoreIDs] <String[]>] [-IgnoreVersion] [-PassThru] [<CommonParameters>]
+ [[-IgnoreIDs] <String[]>] [[-PackageHardwareIDs] <PSObject[]>] [-IgnoreVersion] [-PassThru]
+ [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -22,7 +23,7 @@ The Compare-OSDriver CmdLet compares two drivers.
 The supplied driver will be evaluated
 against the supplied Core Driver.
 
-If it has the same or lower version as the Core Driver, and all PNPIDs are handled by the Core
+If it has the same or lower version as the Core Driver, and all Hardware IDs are handled by the Core
 Driver as well, the function, it will return $true to indicate, that it can most likely be
 replaced by the Core Driver.
 If not, it will return $false.
@@ -34,7 +35,7 @@ Replace: will be set to $true, if the Driver can be safely replaced by the Core 
 $False if not.
 LowerVersion: will be set to $true, if the Core Driver has a higher version.
 $false, if not.
-MissingPnPIDs: List of PnPIDs, that are not referenced by the Core Driver.
+MissingHardwareIDs: List of Hardware IDs, that are not referenced by the Core Driver.
 
 ## EXAMPLES
 
@@ -58,7 +59,7 @@ Aliases:
 Required: True
 Position: 1
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -73,7 +74,7 @@ Aliases: PackageDriver
 Required: True
 Position: 2
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
@@ -103,6 +104,24 @@ Aliases:
 
 Required: False
 Position: 4
+Default value: @()
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -PackageHardwareIDs
+Specifies a list of HardwareIDs from the Driver Package that contains the supplied Driver.
+Some vendors create 'merged' drivers based on individual drivers from the original manufacturer.
+As those 'merged' drivers whould always be missing Hardware IDs, as they were orignally supplied
+by different, individual drivers, all Drivers within a Driver Package should be seen as an entity.
+
+```yaml
+Type: PSObject[]
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: 5
 Default value: @()
 Accept pipeline input: False
 Accept wildcard characters: False

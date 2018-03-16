@@ -49,7 +49,11 @@ Function Compare-OSDriverPackage {
 
         # Specifies a list of known mappings of Driver inf files.
         # Some computer vendors tend to rename the original inf files as part of their customization process
-        [hashtable]$Mappings = @{}
+        [hashtable]$Mappings = @{},
+
+        # Specifies if the Driver Package is targetting a single architecture only or all
+        [ValidateSet('All', 'x86', 'x64', 'ia64')]
+        [string]$Architecture = 'All'
     )
 
     begin {
@@ -122,10 +126,17 @@ Function Compare-OSDriverPackage {
                 }
             }
 
-            foreach ($Driver in $DriverPackage.Drivers) {
+            if ($Architecture -ne 'All') {
+                $PkgDrivers = $DriverPackage.Drivers | Where-Object {((($_.HardwareIDs | Group-Object -Property 'Architecture' | Where-Object {$_.Name -eq "$Architecture"}).Count -gt 0) -and (-Not($_.Replace)))}
+            } else {
+                $PkgDrivers = $DriverPackage.Drivers | Where-Object {-Not($_.Replace)}
+            }
+
+            foreach ($Driver in $PkgDrivers) {
                 Write-Verbose "    Driver : $($Driver.Driverfile)"
                 $Drivername = (Split-Path $Driver.DriverFile -Leaf)
                 $CoreDriver = $null
+
                 $CoreDrivers = $CorePkg.Drivers | Foreach-Object {
                     $CoreDriverName = (Split-Path $_.DriverFile -Leaf)
 

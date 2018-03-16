@@ -15,7 +15,8 @@ unneeded Drivers.
 
 ```
 Clean-OSDriverPackage [-CoreDriverPackage] <PSObject[]> [-DriverPackage] <PSObject> [[-CriticalIDs] <String[]>]
- [[-IgnoreIDs] <String[]>] [-IgnoreVersion] [-KeepFolder] [<CommonParameters>]
+ [[-IgnoreIDs] <String[]>] [-IgnoreVersion] [[-Mappings] <Hashtable>] [-KeepFolder] [[-Architecture] <String>]
+ [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -117,9 +118,26 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Mappings
+Specifies a list of known mappings of Driver inf files.
+Some computer vendors tend to rename the original inf files as part of their customization process
+
+```yaml
+Type: Hashtable
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: 5
+Default value: @{}
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -KeepFolder
 Specifies if the temporary content of the expanded folder should be kept.
 On default, the content will be removed, after all changes have been applied.
+Helpful when running several iterations.
 
 ```yaml
 Type: SwitchParameter
@@ -129,6 +147,21 @@ Aliases:
 Required: False
 Position: Named
 Default value: False
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Architecture
+Specifies if the Driver Package is targetting a single architecture only or all
+
+```yaml
+Type: String
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: 6
+Default value: All
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
