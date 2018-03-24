@@ -20,7 +20,7 @@ function New-OSDriverPackage {
     param (
         # Specifies the name and path of the Driver Package content
         # The Definition File will be named exactly the same as the Driver Package.
-        [Parameter(Mandatory, ValueFromPipeline,ValueFromPipelineByPropertyName)]
+        [Parameter(Mandatory, Position=0, ValueFromPipeline,ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({Test-Path $_})]
         [Alias("FullName")]
@@ -30,6 +30,13 @@ function New-OSDriverPackage {
         # Possible values are CAB or ZIP
         [ValidateSet('CAB', 'ZIP')]
         [string]$ArchiveType = 'ZIP',
+
+        # Specifies generic tag(s) that can be used to further identify the Driver Package.
+        [string[]]$Tag,
+
+        # Specifies the excluded generic tag(s).
+        # Can be used to e.g. identify specific Core Packages.
+        [string[]]$ExcludeTag,
 
         # Specifies the supported Operating System version(s).
         # Recommended to use tags as e.g. Win10-x64, Win7-x86.
@@ -42,9 +49,6 @@ function New-OSDriverPackage {
         # Specifies the supported Architectures.
         # Recommended to use the tags x86, x64 and/or ia64.
         [string[]]$Architecture,
-
-        # Specifies generic tag(s) that can be used to further identify the Driver Package.
-        [string[]]$Tag,
 
         # Specifies the supported Make(s)/Vendor(s)/Manufacture(s).
         # Use values from Manufacturer property from Win32_ComputerSystem.
@@ -85,28 +89,21 @@ function New-OSDriverPackage {
         [switch]$PassThru
     )
 
-    begin {
-        if (-not $PSBoundParameters.ContainsKey('Confirm')) {
-            $ConfirmPreference = $PSCmdlet.SessionState.PSVariable.GetValue('ConfirmPreference')
-        }
-        if (-not $PSBoundParameters.ContainsKey('WhatIf')) {
-            $WhatIfPreference = $PSCmdlet.SessionState.PSVariable.GetValue('WhatIfPreference')
-        }
-        Write-Verbose "Start creating new Driver Package."
-    }
-
     process {
+        $script:Logger.Trace("New driver package ('Path':'$Path', 'ArchiveType':'$ArchiveType', 'Tag':'$($Tag -join ',')', 'ExcludeTag':'$($ExcludeTag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'ExcludeOSVersion':'$($ExcludeOSVersion -join ',')', 'Architecture':'$($Architecture -join ',')', 'Make':'$($Make -join ',')', 'ExcludeMake':'$($ExcludeMake -join ',')', 'Model':'$($Model -join ',')', 'ExcludeModel':'$($ExcludeModel -join ',')', 'URL':'$URL', 'SkipPNPDetection':'$SkipPNPDetection', 'IgnoreSubSys':'$IgnoreSubSys', 'Force':'$Force', 'KeepFiles':'$KeepFiles', 'PassThru':'$PassThru'")
+
         $Path = (Get-Item -Path $Path.Trim("\")).FullName
 
-        Write-Verbose "  Processing path '$Path'."
+        $script:Logger.Info("Creating new driver package from '$Path'.")
 
         # Create a Definition file first
         $DefSettings = @{
             Path = $Path
+            Tag = $Tag
+            ExcludeTag = $ExcludeTag
             OSVersion = $OSVersion
             ExcludeOSVersion = $ExcludeOSVersion
             Architecture = $Architecture
-            Tag = $Tag
             Make = $Make
             ExcludeMake = $ExcludeMake
             Model = $Model
@@ -119,22 +116,18 @@ function New-OSDriverPackage {
         if ($Force.IsPresent) { $DefSettings.Force = $true}
         if ($SkipPNPDetection.IsPresent) { $DefSettings.SkipPNPDetection = $true}
 
+        $script:Logger.Info("Creating new driver package info file.")
         Read-OSDriverPackage -Path $Path
 
-        Write-Verbose "    Creating new Driver Package Definition file."
+        $script:Logger.Info("Creating new driver package definition file.")
         New-OSDriverPackageDefinition @DefSettings
 
         # Compress files
-        Write-Verbose "    Compressing Driver Package source content."
+        $script:Logger.Info("Compressing driver package source content.")
         $DriverPackagePath = Compress-OSDriverPackage -Path $Path -ArchiveType $ArchiveType -Force:($Force.IsPresent) -RemoveFolder:(-Not($KeepFiles.IsPresent)) -Passthru
 
         if ($PassThru.IsPresent) {
             Get-OSDriverPackage -Path $DriverPackagePath
         }
-
-    }
-
-    end{
-        Write-Verbose "Finished creating new Driver Package."
     }
 }

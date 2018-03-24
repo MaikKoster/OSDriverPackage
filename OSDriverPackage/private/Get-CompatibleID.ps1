@@ -2,12 +2,14 @@ function Get-CompatibleID {
     [CmdLetBinding()]
     [Outputtype([string])]
     param(
-        [Parameter(Mandatory,ValueFromPipeline,ValueFromPipelineByPropertyName)]
+        [Parameter(Mandatory, Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [string]$HardwareID
     )
 
     process {
+        $script:Logger.Trace("Get compatible ID ('HardwareID':'$HardwareID')")
+
         $Identifier = $HardwareID.Split('\')
         $Bus = $Identifier[0]
         if ($Bus -eq 'PCI') {
@@ -39,21 +41,24 @@ function Get-CompatibleID {
                 } elseif ($Component -like 'CC_*') {
                     $ClassCode = $Component
                 } else {
-                    Write-Verbose "Unable to identify Device component '$Component' from HardwareID '$HardwareID'."
+                    $script:Logger.Warn("Unable to identify Device component '$Component' from HardwareID '$HardwareID'.")
                 }
             }
 
             if (-Not([string]::IsNullOrEmpty($Vendor))) {
                 if (-Not([string]::IsNullOrEmpty($Device))) {
                     "$Bus\$Vendor&$Device"
+                    $script:Logger.Trace("Compatible ID: $Bus\$Vendor&$Device")
                     if (-Not([string]::IsNullOrEmpty($Revision))) {
                         "$Bus\$Vendor&$Device&$Revision"
+                        $script:Logger.Trace("Compatible ID: $Bus\$Vendor&$Device&$Revision")
                         # if (-Not([string]::IsNullOrEmpty($Subsystem))) {
                         #     "PCI\$Vendor&$Device&$Subsystem&$Revision"
                         # }
                     }
                     if (-Not([string]::IsNullOrEmpty($Subsystem))) {
                         "$Bus\$Vendor&$Device&$Subsystem"
+                        $script:Logger.Trace("Compatible ID: $Bus\$Vendor&$Device&$Subsystem")
                     }
                 }
             }
@@ -87,13 +92,14 @@ function Get-CompatibleID {
                 } elseif ($Component -like 'MI_*') {
                     $Interface = $Component
                 } else {
-                    Write-Verbose "Unable to identify Device component '$Component' from HardwareID '$HardwareID'."
+                    $script:Logger.Warn("Unable to identify Device component '$Component' from HardwareID '$HardwareID'.")
                 }
             }
 
             if (-Not([string]::IsNullOrEmpty($Vendor))) {
                 if (-Not([string]::IsNullOrEmpty($Product))) {
                     "$Bus\$Vendor&$Product"
+                    $script:Logger.Trace("Compatible ID: $Bus\$Vendor&$Product")
                 }
             }
         } elseif ($Bus -in 'INTELAUDIO','HDAUDIO') {
@@ -113,7 +119,7 @@ function Get-CompatibleID {
                 } elseif ($Component -like 'REV_*') {
                     $Revision = $Component
                 } else {
-                    Write-Verbose "Unable to identify Device component '$Component' from HardwareID '$HardwareID'."
+                    $script:Logger.Warn("Unable to identify Device component '$Component' from HardwareID '$HardwareID'.")
                 }
             }
 
@@ -121,8 +127,10 @@ function Get-CompatibleID {
                 if (-Not([string]::IsNullOrEmpty($Vendor))) {
                     if (-Not([string]::IsNullOrEmpty($Device))) {
                         "$Bus\$Func&$Vendor&$Device"
+                        $script:Logger.Trace("Compatible ID: $Bus\$Func&$Vendor&$Device")
                         if (-Not([string]::IsNullOrEmpty($Revision))) {
                             "$Bus\$Func&$Vendor&$Device&$Revision"
+                            $script:Logger.Trace("Compatible ID: $Bus\$Func&$Vendor&$Device&$Revision")
                         }
                     }
                 }
@@ -144,7 +152,7 @@ function Get-CompatibleID {
         } elseif ($Bus -like '{*}') {
             # Nothing to do here
         } else {
-            Write-Verbose "Unknown Bus type '$Bus' from HardwareID '$HardwareID'"
+            $script:Logger.Warn("Unknown Bus type '$Bus' from HardwareID '$HardwareID'")
         }
 
         #Always return the input object

@@ -12,13 +12,14 @@ function Expand-OSDriverPackage {
     [CmdletBinding(SupportsShouldProcess)]
     param (
         # Specifies the name and path of Driver Package that should be expanded.
-        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Parameter(Mandatory, Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [Alias("FullName")]
         [string[]]$Path,
 
         # Specifies the Path to which the Driver Package should be expanded.
         # On default, a subfolder with the same name as the Driver Package will be used.
+        [Alias('Destination')]
         [string]$DestinationPath,
 
         # Specifies if an existing folder should be overwritten
@@ -32,14 +33,6 @@ function Expand-OSDriverPackage {
     )
 
     begin {
-        if (-not $PSBoundParameters.ContainsKey('Confirm')) {
-            $ConfirmPreference = $PSCmdlet.SessionState.PSVariable.GetValue('ConfirmPreference')
-        }
-        if (-not $PSBoundParameters.ContainsKey('WhatIf')) {
-            $WhatIfPreference = $PSCmdlet.SessionState.PSVariable.GetValue('WhatIfPreference')
-        }
-
-        Write-Verbose "Start expanding Driver Package."
         if (-Not([string]::IsNullOrEmpty($DestinationPath))) {
             $ArchiveDestinationPath = $DestinationPath
         }
@@ -47,7 +40,9 @@ function Expand-OSDriverPackage {
 
     process {
         foreach ($Archive in $Path){
-            Write-Verbose "  Expanding Driver Package '$Archive'."
+            $script:Logger.Trace("Expand driver package ('Path':'$Path', 'DestinationPath':'$DestinationPath', 'Force':'$Force', 'RemoveArchive':'$RemoveArchive, 'PassThru':'$PassThru'")
+
+            $script:Logger.Info("Expanding driver package '$Archive'.")
             $ArchiveName = (Get-Item $Archive).BaseName
             $ArchivePath = (Get-Item $Archive).FullName.Trim("\")
             if ([string]::IsNullOrEmpty($DestinationPath)) {
@@ -57,6 +52,7 @@ function Expand-OSDriverPackage {
 
             if (Test-Path $ArchiveDestination) {
                 if (-not($Force.IsPresent)) {
+                    $script:Logger.Error("Archive destination '$ArchiveDestination' exists already and '-Force' is not specified.")
                     throw "Archive destination '$ArchiveDestination' exists already and '-Force' is not specified."
                 }
             } else {
@@ -84,8 +80,5 @@ function Expand-OSDriverPackage {
                 $ArchiveDestination
             }
         }
-    }
-    end {
-        Write-Verbose "Finished expanding Driver Package."
     }
 }

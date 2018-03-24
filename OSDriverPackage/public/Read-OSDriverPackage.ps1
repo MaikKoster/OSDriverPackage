@@ -16,7 +16,7 @@ function Read-OSDriverPackage {
     param (
         # Specifies the path to the Driver Package.
         # If a cab file is specified, the content will be temporarily extracted.
-        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Parameter(Mandatory, Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({Test-Path $_})]
         [Alias("FullName")]
@@ -25,11 +25,11 @@ function Read-OSDriverPackage {
         # Specifies if the Driver Package should be returned
         [switch]$PassThru
     )
-    begin {
-        Write-Verbose "Start Reading Driver Package '$Path'."
-    }
 
     process {
+        $script:Logger.Trace("Read driver package ('Path':'$Path', 'PassThru':'$PassThru'")
+
+        $script:Logger.Info("Reading driver information from driver package '$Path'.")
         $DriverPackage = Get-Item -Path ($Path.Trim("\"))
 
         # Temporily expand driver package if necessary
@@ -38,7 +38,7 @@ function Read-OSDriverPackage {
             if (Test-Path ($DriverPackage.Fullname -replace "$($DriverPackage.Extension)", '')) {
                 $DriverPackage = Get-Item ($DriverPackage.Fullname -replace "$($DriverPackage.Extension)", '')
             } else {
-                Write-Verbose "  Temporarily expand Driver Package content."
+                $script:Logger.Debug("Temporarily expand driver package content.")
                 $DriverPackage = Get-Item (Expand-OSDriverPackage -Path $DriverPackage.FullName -Force -Passthru)
                 $Expanded = $true
             }
@@ -52,20 +52,17 @@ function Read-OSDriverPackage {
                         $_
                     }
 
+        $script:Logger.Info("Updating driver package info file")
         Write-PackageInfoFile -Path "$($DriverPackage.Fullname).json" -Drivers $Drivers
 
         # Remove temporary content
         if ($Expanded) {
-            Write-Verbose "  Remove temporary content."
+            $script:Logger.Debug("Remove temporary content.")
             Remove-Item -Path $DriverPackage -Recurse -Force
         }
 
         if ($PassThru.IsPresent){
             Get-OSDriverPackage -Path $DriverPackage
         }
-    }
-
-    end {
-        Write-Verbose "Finished Reading Driver Package."
     }
 }

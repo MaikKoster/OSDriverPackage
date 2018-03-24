@@ -14,7 +14,7 @@ function New-OSDriverPackageDefinition {
     param (
         # Specifies the name and path of the Driver Package
         # The Definition File will be named exactly the same as the Driver Package.
-        [Parameter(Mandatory, ValueFromPipeline, ParameterSetName='PackageWithSettings')]
+        [Parameter(Mandatory, Position=0, ValueFromPipeline, ParameterSetName='PackageWithSettings')]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({Test-Path $_})]
         [Alias("Path")]
@@ -25,6 +25,18 @@ function New-OSDriverPackageDefinition {
         [Parameter(Mandatory, ParameterSetName='NameWithDefinition')]
         [ValidateNotNullOrEmpty()]
         [string]$FileName,
+
+        # Specifies generic tag(s) that can be used to further identify the Driver Package.
+        # Can be used to e.g. identify specific Core Packages.
+        [Parameter(ParameterSetName='NameWithSettings')]
+        [Parameter(ParameterSetName='PackageWithSettings')]
+        [string[]]$Tag,
+
+        # Specifies the excluded generic tag(s).
+        # Can be used to e.g. identify specific Core Packages.
+        [Parameter(ParameterSetName='NameWithSettings')]
+        [Parameter(ParameterSetName='PackageWithSettings')]
+        [string[]]$ExcludeTag,
 
         # Specifies the supported Operating System version(s).
         # Recommended to use tags as e.g. Win10-x64, Win7-x86.
@@ -43,18 +55,6 @@ function New-OSDriverPackageDefinition {
         [Parameter(ParameterSetName='NameWithSettings')]
         [Parameter(ParameterSetName='PackageWithSettings')]
         [string[]]$Architecture,
-
-        # Specifies generic tag(s) that can be used to further identify the Driver Package.
-        # Can be used to e.g. identify specific Core Packages.
-        [Parameter(ParameterSetName='NameWithSettings')]
-        [Parameter(ParameterSetName='PackageWithSettings')]
-        [string[]]$Tag,
-
-        # Specifies the excluded generic tag(s).
-        # Can be used to e.g. identify specific Core Packages.
-        [Parameter(ParameterSetName='NameWithSettings')]
-        [Parameter(ParameterSetName='PackageWithSettings')]
-        [string[]]$ExcludeTag,
 
         # Specifies the supported Make(s)/Vendor(s)/Manufacture(s).
         # Use values from Manufacturer property from Win32_ComputerSystem.
@@ -114,16 +114,16 @@ function New-OSDriverPackageDefinition {
         [switch]$PassThru
     )
 
-    begin {
-        if (-not $PSBoundParameters.ContainsKey('Confirm')) {
-            $ConfirmPreference = $PSCmdlet.SessionState.PSVariable.GetValue('ConfirmPreference')
-        }
-        if (-not $PSBoundParameters.ContainsKey('WhatIf')) {
-            $WhatIfPreference = $PSCmdlet.SessionState.PSVariable.GetValue('WhatIfPreference')
-        }
-    }
-
     process {
+        if ($PSCmdlet.ParameterSetName -eq 'PackageWithSettings'){
+            $script:Logger.Trace("New driver package definition ('DriverPackagePath':'$DriverPackagePath', Tag':'$($Tag -join ',')', 'ExcludeTag':'$($ExcludeTag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'ExcludeOSVersion':'$($ExcludeOSVersion -join ',')', 'Architecture':'$($Architecture -join ',')', 'Make':'$($Make -join ',')', 'ExcludeMake':'$($ExcludeMake -join ',')', 'Model':'$($Model -join ',')', 'ExcludeModel':'$($ExcludeModel -join ',')', 'URL':'$URL', 'SkipPNPDetection':'$SkipPNPDetection', 'IgnoreSubSys':'$IgnoreSubSys', 'Force':'$Force', 'PassThru':'$PassThru'")
+        } elseif ($PSCmdlet.ParameterSetName -eq 'NameWithSettings') {
+            $script:Logger.Trace("New driver package definition ('FileName':'$FileName', Tag':'$($Tag -join ',')', 'ExcludeTag':'$($ExcludeTag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'ExcludeOSVersion':'$($ExcludeOSVersion -join ',')', 'Architecture':'$($Architecture -join ',')', 'Make':'$($Make -join ',')', 'ExcludeMake':'$($ExcludeMake -join ',')', 'Model':'$($Model -join ',')', 'ExcludeModel':'$($ExcludeModel -join ',')', 'URL':'$URL', 'Force':'$Force', 'PassThru':'$PassThru'")
+        } elseif ($PSCmdlet.ParameterSetName -eq 'NameWithDefinition') {
+            $script:Logger.Trace("New driver package definition ('FileName':'$FileName', 'Definition':'$($Definition | ConvertTo-Json)', 'Force':'$Force', 'PassThru':'$PassThru'")
+        }
+
+
         if ([string]::IsNullOrEmpty($FileName)) {
             $DriverPackage = Get-Item $DriverPackagePath
             if (($DriverPackage.Extension -eq '.cab') -or ($DriverPackage.Extension -eq '.zip')) {
@@ -132,93 +132,101 @@ function New-OSDriverPackageDefinition {
                 $FileName = "$($DriverPackage.FullName).txt"
             }
         }
-        Write-Verbose "Start creating new Driver Package Definition file '$Filename'."
+        $script:Logger.Info("Creating new Driver Package Definition file '$Filename'.")
 
         if ($null -eq $Definition) {
 
             $NewDefinition = [System.Collections.Specialized.OrderedDictionary]@{}
 
             # Section OSDriver must be present
-            Write-Verbose "  Creating OSDrivers section"
+            $script:Logger.Debug("Creating OSDrivers section")
             $NewDefinition['OSDrivers'] = [System.Collections.Specialized.OrderedDictionary]@{}
+
+            if ($null -ne $Tag) {
+                $NewDefinition['OSDrivers']['Tag'] = $Tag -join ', '
+                $script:Logger.Debug("Tag = $($NewDefinition['OSDrivers']['Tag'])")
+            } else {
+                $NewDefinition['OSDrivers']['Tag'] = ''
+            }
+
+            if ($null -ne $ExcludeTag) {
+                $NewDefinition['OSDrivers']['ExcludeTag'] = $Tag -join ', '
+                $script:Logger.Debug("ExcludeTag = $($NewDefinition['OSDrivers']['ExcludeTag'])")
+            } else {
+                #$NewDefinition['OSDrivers']['Tag'] = ''
+            }
+
+
             if ($null -ne $OSVersion) {
                 $NewDefinition['OSDrivers']['OSVersion'] = $OSVersion -join ', '
-                Write-Verbose "    OSVersion = $($NewDefinition['OSDrivers']['OSVersion'])"
+                $script:Logger.Debug("OSVersion = $($NewDefinition['OSDrivers']['OSVersion'])")
             } else {
                 #$NewDefinition['OSDrivers']['OSVersion'] = ''
             }
 
             if ($null -ne $ExcludeOSVersion) {
                 $NewDefinition['OSDrivers']['ExcludeOSVersion'] = $ExcludeOSVersion -join ', '
-                Write-Verbose "    ExcludeOSVersion = $($NewDefinition['OSDrivers']['ExcludeOSVersion'])"
+                $script:Logger.Debug("ExcludeOSVersion = $($NewDefinition['OSDrivers']['ExcludeOSVersion'])")
             } else {
                 #$NewDefinition['OSDrivers']['ExcludeOSVersion'] = ''
             }
 
             if ($null -ne $Architecture) {
                 $NewDefinition['OSDrivers']['Architecture'] = $Architecture -join ', '
-                Write-Verbose "    Architecture = $($NewDefinition['OSDrivers']['Architecture'])"
+                $script:Logger.Debug("Architecture = $($NewDefinition['OSDrivers']['Architecture'])")
             } else {
                 #$NewDefinition['OSDrivers']['Architecture'] = ''
             }
 
-            if ($null -ne $Tag) {
-                $NewDefinition['OSDrivers']['Tag'] = $Tag -join ', '
-                Write-Verbose "    Tag = $($NewDefinition['OSDrivers']['Tag'])"
-            } else {
-                #$NewDefinition['OSDrivers']['Tag'] = ''
-            }
-
-
             if ($null -ne $Make) {
                 $NewDefinition['OSDrivers']['Make'] = $Make -join ', '
-                Write-Verbose "    Make = $($NewDefinition['OSDrivers']['Make'])"
+                $script:Logger.Debug("Make = $($NewDefinition['OSDrivers']['Make'])")
             } else {
                 #$NewDefinition['OSDrivers']['Make'] = ''
             }
 
             if ($null -ne $ExcludeMake) {
                 $NewDefinition['OSDrivers']['ExcludeMake'] = $ExcludeMake -join ', '
-                Write-Verbose "    ExcludeMake = $($NewDefinition['OSDrivers']['ExcludeMake'])"
+                $script:Logger.Debug("ExcludeMake = $($NewDefinition['OSDrivers']['ExcludeMake'])")
             } else {
                 #$NewDefinition['OSDrivers']['ExcludeMake'] = ''
             }
 
             if ($null -ne $Model) {
                 $NewDefinition['OSDrivers']['Model'] = $Model -join ', '
-                Write-Verbose "    Model = $($NewDefinition['OSDrivers']['Model'])"
+                $script:Logger.Debug("Model = $($NewDefinition['OSDrivers']['Model'])")
             }else {
                 #$NewDefinition['OSDrivers']['Model'] = ''
             }
 
             if ($null -ne $ExcludeModel) {
                 $NewDefinition['OSDrivers']['ExcludeModel'] = $ExcludeModel -join ', '
-                Write-Verbose "    ExcludeModel = $($NewDefinition['OSDrivers']['ExcludeModel'])"
+                $script:Logger.Debug("ExcludeModel = $($NewDefinition['OSDrivers']['ExcludeModel'])")
             }else {
                 #$NewDefinition['OSDrivers']['ExcludeModel'] = ''
             }
 
             if (-Not([string]::IsNullOrEmpty($URL))) {
                 $NewDefinition['OSDrivers']['URL'] = $URL -join ', '
-                Write-Verbose "    URL = $($NewDefinition['OSDrivers']['URL'])"
+                $script:Logger.Debug("URL = $($NewDefinition['OSDrivers']['URL'])")
             }else {
                 #$NewDefinition['OSDrivers']['URL'] = ''
             }
 
             if ($IgnoreSubSys.IsPresent){
                 $NewDefinition['OSDrivers']['IgnoreSubSys'] = 'Yes'
-                Write-Verbose "    IgnoreSubSys = Yes"
+                $script:Logger.Debug("IgnoreSubSys = Yes")
             }
 
             if ($PSCmdlet.ParameterSetName -eq 'PackageWithSettings') {
                 if ($SkipPNPDetection.IsPresent) {
-                    Write-Verbose "  Skipping evluation of Driver files."
+                    $script:Logger.Debug("Skipping evluation of Driver files.")
                 } else {
-                    Write-Verbose "  Creating WQL and PNPIDS sections."
+                    $script:Logger.Debug("Creating WQL and PNPIDS sections.")
                     # TODO: Check if Folder or cab file. Expand and compress on the fly
 
                     # Get all Driver infos and put into hashtable
-                    Write-Verbose "  Searching for drivers."
+                    $script:Logger.Debug("Searching for drivers.")
                     $InfoFilePath = $FileName -replace '.txt', '.json'
 
                     # Ensure PackageInfo file exists
@@ -238,7 +246,7 @@ function New-OSDriverPackageDefinition {
                             if (-Not([string]::IsNullOrEmpty($HardwareID))) {
                                 $NewDefinition['WQL']["Comment_$Count"] = "Select * FROM Win32_PnPEntity WHERE DeviceID LIKE '$HardwareID'"
                                 $NewDefinition['PNPIDS']["$HardwareID"] = $_.HardwareDescription
-                                Write-Verbose "    $HardwareID = $($_.HardwareDescription)"
+                                $script:Logger.Debug("$HardwareID = $($_.HardwareDescription)")
                             }
                         }
 
@@ -246,48 +254,47 @@ function New-OSDriverPackageDefinition {
             } else {
                 # WQL
                 if ($null -ne $WQL) {
-                    Write-Verbose "  Creating WQL section."
+                    $script:Logger.Debug("Creating WQL section.")
                     $NewDefinition['WQL'] = [System.Collections.Specialized.OrderedDictionary]@{}
                     foreach ($query in $WQL) {
                         $WQLCount++
                         $NewDefinition['WQL']["Comment_$WQLCount"] = $query
-                        Write-Verbose "$Query"
+                        $script:Logger.Debug("$Query")
                     }
                 }
 
                 # Plug-And-Play IDs
                 if ($null -ne $PNPIDs) {
-                    Write-Verbose "  Creating PNPIDS section."
+                    $script:Logger.Debug("Creating PNPIDS section.")
                     $NewDefinition['PNPIDS'] = [System.Collections.Specialized.OrderedDictionary]@{}
                     foreach ($PNPID in $PNPIDs.Keys) {
                         $NewDefinition['PNPIDS']["$PNPID"] = $PNPIDs[$PNPID]
-                        Write-Verbose "$PNPID = $($PNPIDs[$PNPID])"
+                        $script:Logger.Debug("$PNPID = $($PNPIDs[$PNPID])")
                     }
                 }
             }
         } else {
-            Write-Verbose "  Using supplied Definition."
+            $script:Logger.Debug("Using supplied definition.")
             $NewDefinition = $Definition
         }
 
         if (-Not(Test-Path $FileName) ) {
             if ($PSCmdlet.ShouldProcess("Saving driver package definition file '$FileName'.")) {
-                Write-Verbose "  Saving Driver Package Definition file '$FileName'."
+                $script:Logger.Debug("Saving driver package definition file '$FileName'.")
                 Write-DefinitionFile -Definition $NewDefinition -Path $FileName
             }
         } elseif ((Test-Path $FileName) -and ($Force.IsPresent)) {
             if ($PSCmdlet.ShouldProcess("Overwriting existing driver package definition file '$FileName'.")) {
-                Write-Verbose "  Overwriting existing Driver Package Definition file '$FileName'."
+                $script:Logger.Debug("Overwriting existing driver package definition file '$FileName'.")
                 Write-DefinitionFile -Definition $NewDefinition -Path $FileName
             }
         } else {
-            throw "Driver Package Definition File '$Filename' exists and '-Force' is not specified."
+            $script:Logger.Error("Driver package definition file '$Filename' exists and '-Force' is not specified.")
+            throw "Driver package definition file '$Filename' exists and '-Force' is not specified."
         }
 
         if ($PassThru.IsPresent) {
             $FileName
         }
-
-        Write-Verbose "Finished creating new Driver Package Definition file."
     }
 }

@@ -19,12 +19,12 @@ Function Clean-OSDriverPackage {
     [CmdletBinding()]
     param(
         # Specifies the Core Driver.
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory, Position=0)]
         [ValidateNotNullOrEmpty()]
         [PSCustomObject[]]$CoreDriverPackage,
 
         # Specifies that should be compared
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory, Position=1, ValueFromPipeline)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({(Test-Path $_.DriverPackage) -and (((Get-Item $_.DriverPackage).Extension -eq '.cab') -or ((Get-Item $_.DriverPackage).Extension -eq '.zip'))})]
         [PSCustomObject]$DriverPackage,
@@ -53,11 +53,8 @@ Function Clean-OSDriverPackage {
         [string]$Architecture = 'All'
     )
 
-    begin {
-        Write-Verbose "Start cleaning Driver Package."
-    }
-
     process {
+        $script:Logger.Trace("Cleanup driver package ('DriverPackage':'$($DriverPackage.DriverPackage)'")
 
         $Pkg = (Get-Item -Path ($DriverPackage.DriverPackage))
         $PkgPath = Join-Path -Path ($Pkg.Directory) -ChildPath ($Pkg.BaseName)
@@ -65,7 +62,7 @@ Function Clean-OSDriverPackage {
         $OldArchiveSize = $Pkg.Length
         $OldDriverCount = $DriverPackage.Drivers.Count
 
-        Write-Verbose "  Processing Driver Package '$($DriverPackage.DriverPackage)'."
+        $script:Logger.Info("Processing driver package '$($DriverPackage.DriverPackage)'.")
         $CompareParams = @{
             CoreDriverPackage = $CoreDriverPackage
             DriverPackage = $DriverPackage
@@ -78,7 +75,7 @@ Function Clean-OSDriverPackage {
         $ComparisonResults = Compare-OSDriverPackage @CompareParams
 
         # Get results that can be removed
-        $RemoveResults = @($DriverPackage.Drivers | Where-Object{$_.Replace})
+        $RemoveResults = @($DriverPackage.Drivers | Where-Object {$_.Replace})
 
         # Remove based on architecture, if requested
         if ($Architecture -ne 'All') {
@@ -87,10 +84,11 @@ Function Clean-OSDriverPackage {
         }
 
         if ($RemoveResults.Count -gt 0) {
-            Write-Verbose "  Compared $($ComparisonResults.Count) Drivers, $($RemoveResults.Count) can be removed."
+            $script:Logger.Info("Compared $($ComparisonResults.Count) drivers, $($RemoveResults.Count) can be removed.")
             $Expanded = $false
             # Expand content if necessary
             if (-Not(Test-Path $PkgPath)) {
+                $script:Logger.Info("Temporarily expanding content of '$($Pkg.Fullname)'")
                 Expand-OSDriverPackage -Path $Pkg.FullName
                 $Expanded = $true
             }
@@ -134,7 +132,7 @@ Function Clean-OSDriverPackage {
             $NewPackage = Get-OSDriverPackage -Path $Pkg.FullName -Verbose:$false
             $NewDriverCount = $NewPackage.Drivers.Count
 
-            [PSCustomObject]@{
+            $Result = [PSCustomObject]@{
                 DriverPackage = $DriverPackage.DriverPackage
                 OldArchiveSize = $OldArchiveSize
                 NewArchiveSize = $NewArchiveSize
@@ -145,8 +143,8 @@ Function Clean-OSDriverPackage {
                 RemovedDrivers = $RemoveResults
             }
         } else {
-            Write-Verbose "  Compared $($ComparisonResults.Count) Drivers, none can be removed."
-            [PSCustomObject]@{
+            $script:Logger.Info("Compared $($ComparisonResults.Count) Drivers, none can be removed.")
+            $Result = [PSCustomObject]@{
                 DriverPackage = $DriverPackage.DriverPackage
                 OldArchiveSize = $OldArchiveSize
                 NewArchiveSize = $OldArchiveSize
@@ -157,9 +155,7 @@ Function Clean-OSDriverPackage {
                 RemovedDrivers = @()
             }
         }
-    }
-
-    end {
-        Write-Verbose "Finished comparing Driver Package."
+        $script:Logger.Info(($Result | Out-String))
+        $Result
     }
 }

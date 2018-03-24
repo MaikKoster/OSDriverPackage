@@ -12,7 +12,7 @@ function Compress-OSDriverPackage {
     [CmdletBinding(SupportsShouldProcess)]
     param (
         # Specifies the name and path of Driver Package that should be compressed.
-        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Parameter(Mandatory, Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({((Test-Path $_) -and ((Get-Item $_).PSIsContainer))})]
         [Alias("FullName")]
@@ -33,29 +33,21 @@ function Compress-OSDriverPackage {
         [switch]$Passthru
     )
 
-    begin {
-        if (-not $PSBoundParameters.ContainsKey('Confirm')) {
-            $ConfirmPreference = $PSCmdlet.SessionState.PSVariable.GetValue('ConfirmPreference')
-        }
-        if (-not $PSBoundParameters.ContainsKey('WhatIf')) {
-            $WhatIfPreference = $PSCmdlet.SessionState.PSVariable.GetValue('WhatIfPreference')
-        }
-        Write-Verbose "Start compressing Driver Package."
-    }
-
     process {
-        Write-Verbose " Compressing Driver Package '$Path'."
+        $script:Logger.Trace("compress driver package ('Path':'$Path', 'ArchiveType':'$ArchiveType', 'Force':'$Force', 'RemoveFolder':'$RemoveFolder', 'Passthru':'$Passthru'")
+        $script:Logger.Info("Compressing driver package '$Path'.")
 
         # CAB only supports <2GB
         if ($ArchiveType -eq 'CAB'){
             $FolderSize  = Get-FolderSize -Path $Path
             if ($FolderSize.Bytes -ge 2GB) {
-                Write-Verbose " Driver Package contains more than 2GB of data. Switching to zip."
+                $script:Logger.Info("Driver package contains more than 2GB of data. Switching ArchiveType to zip.")
                 $ArchiveType = 'ZIP'
             }
         }
 
         if ((Test-Path "$Path.$ArchiveType") -and (-Not($Force.IsPresent))) {
+            $script:Logger.Error("Archive '$Path.$ArchiveType' exists already and '-Force' is not specified.")
             throw "Archive '$Path.$ArchiveType' exists already and '-Force' is not specified."
         }
 
@@ -63,13 +55,9 @@ function Compress-OSDriverPackage {
 
         if ($RemoveFolder.IsPresent) {
             if ($PSCmdlet.ShouldProcess("Removing folder '$Path'.")) {
-                Write-Verbose " Removing folder '$Path'."
+                $script:Logger.Info("Removing folder '$Path'.")
                 $null = Remove-Item -Path $Path -Recurse -Force
             }
         }
-
-    }
-    end {
-        Write-Verbose "Finished compressing Driver Package."
     }
 }

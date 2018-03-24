@@ -15,25 +15,26 @@ Function Write-PackageInfoFile {
     param(
         # Specifies a list of Drivers from the Driver Package
         # The list should be created using Get-OSDriver
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory, Position=1, ValueFromPipeline)]
         [ValidateNotNullOrEmpty()]
         [object[]]$Drivers,
 
         # Specifies the name and path of the Definition file.
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory, Position=0)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({$_ -like '*.json'})]
         [Alias("FullName")]
         [string]$Path
     )
+
     process {
-        Write-Verbose "Start writing Driver Package Info File '$Path'."
+        $script:Logger.Trace("Write driver package info file ('Path':'$Path', 'Drivers':$($Drivers | ConvertTo-Json))")
 
         if (Test-Path $Path) {
+            $script:Logger.Debug("Removing old driver package info file at '$Path'.")
             Remove-Item -Path $Path -Force
         }
+        $script:Logger.Debug("Writing $($Drivers.Count) drivers to '$Path'.")
         $Drivers | ConvertTo-Json -Depth 4 | Set-Content -Path $Path
-
-        Write-Verbose "Finished writing Driver Package Info File."
     }
 }

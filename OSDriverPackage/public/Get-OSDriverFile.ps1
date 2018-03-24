@@ -11,7 +11,7 @@ function Get-OSDriverFile {
     [CmdletBinding(SupportsShouldProcess)]
     param (
         # Specifies the path where to search for driver files
-        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Parameter(Mandatory, Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({Test-Path $_})]
         [Alias("FullName")]
@@ -27,19 +27,10 @@ function Get-OSDriverFile {
         [switch]$Expand
     )
 
-    begin {
-        if (-not $PSBoundParameters.ContainsKey('Confirm')) {
-            $ConfirmPreference = $PSCmdlet.SessionState.PSVariable.GetValue('ConfirmPreference')
-        }
-        if (-not $PSBoundParameters.ContainsKey('WhatIf')) {
-            $WhatIfPreference = $PSCmdlet.SessionState.PSVariable.GetValue('WhatIfPreference')
-        }
-        Write-Verbose "Start getting Driver Files."
-    }
-
     process {
-        Write-Verbose "  Getting Driver files from '$Path'."
+        $script:Logger.Trace("Get driver files ('Path':'$Path', 'Files':'$Files', 'Expand':'$Expand'")
 
+        $script:Logger.Info("Get driver files from '$Path'.")
         $DriverPackage = Get-Item -Path $Path
         $DriverFiles = @()
         if ($DriverPackage.PSIsContainer) {
@@ -50,15 +41,15 @@ function Get-OSDriverFile {
                 $DriverFiles = Get-ChildItem -Path ($DriverPackage.FullName -replace '.cab', '') -Recurse -File -Filter $Files
 
             } elseif ($Expand.IsPresent) {
-                Write-Verbose '    Temporarily expanding content of Driver Package.'
+                $script:Logger.Debug('Temporarily expanding content of Driver Package.')
                 $ExpandedPath = Expand-OSDriverPackage -Path $Path -Force -PassThru
 
                 $DriverFiles = Get-ChildItem -Path $ExpandedPath -Recurse -File -Filter $Files
 
-                Write-Verbose "    Removing temporary content."
+                $script:Logger.Debug('Removing temporary content.')
                 Remove-Item -Path $ExpandedPath -Recurse -Force
             } else {
-                Write-Verbose '    Reading files from Driver Package.'
+                $script:Logger.Debug('Reading files from Driver Package.')
                 $Output = EXPAND -D "$Path" -F:"$Files"
                 #TODO: get someone with better Regex skills. Need to skip ': ' from the negative lookahead
                 switch -Regex ($Output) {
@@ -73,8 +64,5 @@ function Get-OSDriverFile {
         }
 
         $DriverFiles
-    }
-    end {
-        Write-Verbose "Finished getting Driver Files."
     }
 }

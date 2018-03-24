@@ -12,17 +12,15 @@ function Read-DefinitionFile {
     [OutputType([System.Collections.Specialized.OrderedDictionary])]
     param(
         # Specifies the name and path to the Driver Package Definition file.
-        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Parameter(Mandatory, Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({Test-Path $_})]
         [Alias("FullName")]
         [string]$Path
     )
-    begin {
-        Write-Verbose "Start reading Definition File."
-    }
+
     process {
-        Write-Verbose "  Reading Definition File '$Path'."
+        $script:Logger.Trace("Read driver package definition file ('Path':'$Path')")
 
         $Definition = [System.Collections.Specialized.OrderedDictionary]@{}
         switch -Regex (Get-Content $Path) {
@@ -31,7 +29,7 @@ function Read-DefinitionFile {
                 $Section = $Matches[1]
                 $Definition[$Section] = [System.Collections.Specialized.OrderedDictionary]@{}
                 $CommentCount = 0
-                Write-Verbose "  Reading Section: [$Section]"
+                $script:Logger.Trace("Reading section: [$Section]")
             }
 
             "^(?!;|#)(.+?)\s*=\s*(.*)" {
@@ -41,6 +39,7 @@ function Read-DefinitionFile {
                     $Definition[$Section] = [System.Collections.Specialized.OrderedDictionary]@{}
                 }
                 $Definition[$section][$Matches[1]] = $Matches[2]
+                $script:Logger.Trace("Reading key: $($Matches[1]), value $($Matches[2])")
             }
 
             "^((;|#).*)$|^((?!=|\[|\]).)+$" {
@@ -52,16 +51,16 @@ function Read-DefinitionFile {
                 $CommentCount = $CommentCount + 1
                 $Name = "Comment_" + $CommentCount
                 $Definition[$Section][$Name] = $Matches[1]
+                if (-not([string]::IsNullOrEmpty($Matches[1]))) {
+                    $script:Logger.Trace("Reading comment: $($Matches[1])")
+                }
             }
         }
 
         if ($Definition.Keys -contains 'OSDrivers') {
             $Definition
         } else {
-            Write-Verbose "  No valid Definition file. Missing 'OSDrivers' section in file '$Path'."
+            $script:Logger.Error("No valid driver package definition file. Missing 'OSDrivers' section in file '$Path'.")
         }
-    }
-    end {
-        Write-Verbose "Finished reading Definition File."
     }
 }

@@ -27,12 +27,12 @@ Function Compare-OSDriverPackage {
     [CmdletBinding()]
     param(
         # Specifies the Core Driver.
-        [Parameter(Mandatory, ValueFromPipeline)]
+        [Parameter(Mandatory, Position=1, ValueFromPipeline)]
         [ValidateNotNullOrEmpty()]
         [PSCustomObject[]]$CoreDriverPackage,
 
         # Specifies the Driver Package that should be compared
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory, Position=0)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({(Test-Path $_.DriverPackage) -and (((Get-Item $_.DriverPackage).Extension -eq '.cab') -or ((Get-Item $_.DriverPackage).Extension -eq '.zip'))})]
         [PSCustomObject]$DriverPackage,
@@ -57,12 +57,13 @@ Function Compare-OSDriverPackage {
     )
 
     begin {
-        Write-Verbose "Start comparing Driver Package."
+        $script:Logger.Trace("Compare driver package ('DriverPackage':'$($DriverPackage | ConvertTo-Json -Depth 1)'")
+
         # Get Mappings from Driver Package definitions
         if ($DriverPackage.Definition.Contains('Mappings')){
             foreach ($Mapping in ($DriverPackage.Definition.Mappings.Keys)) {
                 if ($Mapping -notlike 'Comment_*') {
-                    Write-Verbose "  Adding mapping '$Mapping' = '$($DriverPackage.Definition.Mappings[$Mapping])'."
+                    $script:Logger.Debug("Use mapping '$Mapping' = '$($DriverPackage.Definition.Mappings[$Mapping])'.")
                     $Mappings[$Mapping] = $DriverPackage.Definition.Mappings[$Mapping]
                 }
             }
@@ -72,7 +73,7 @@ Function Compare-OSDriverPackage {
             foreach ($IgnoreID in ($DriverPackage.Definition.HardwareIDs.Keys)) {
                 $IgnoreValue = $DriverPackage.Definition.HardwareIDs[$IgnoreID]
                 if ($IgnoreValue -eq 'Ignore') {
-                    Write-Verbose "  Adding HardwareID '$IgnoreID' to list of IgnoredIDs."
+                    $script:Logger.Debug("Add HardwareID '$IgnoreID' to list of IgnoredIDs.")
                     $IgnoreIDs += $IgnoreID
                 }
             }
@@ -83,7 +84,7 @@ Function Compare-OSDriverPackage {
             if ($DriverPackage.Definition.Contains('OSDrivers')){
                 if ($DriverPackage.Definition.OSDrivers.Contains('IgnoreVersion')){
                     if (($DriverPackage.Definition.OSDrivers['IgnoreVersion'] -eq 'Yes') -or ($DriverPackage.Definition.OSDrivers['IgnoreVersion'] -eq 'True')) {
-                        Write-Verbose "Driver package is configured to ignore versions."
+                        $script:Logger.Debug("Driver package is configured to ignore versions.")
                         $IgnoreVersion = $true
                     }
                 }
@@ -93,14 +94,17 @@ Function Compare-OSDriverPackage {
 
     process {
 
+
         foreach ($CorePkg in $CoreDriverPackage){
-            Write-Verbose "  Core Driver Package : $($CorePkg.DriverPackage)"
-            Write-Verbose "  Driver Package : $($DriverPackage.DriverPackage)"
+            $script:Logger.Trace("Compare driver package ('CoreDriverPackage':'$($CorePkg | ConvertTo-Json -Depth 1)'")
+            $script:Logger.Info("Comparing driver package '$($DriverPackage.DriverPackage)' with '$($CorePkg.DriverPackage)'")
+
+            $script:Logger.Debug("Core Driver Package : $($CorePkg.DriverPackage)")
             # Get Mappings from Core Driver Package definitions
             if ($CorePkg.Definition.Contains('Mappings')){
                 foreach ($Mapping in ($CorePkg.Definition.Mappings.Keys)) {
                     if ($Mapping -notlike 'Comment_*') {
-                        Write-Verbose "  Adding mapping '$Mapping' = '$($CorePkg.Definition.Mappings[$Mapping])'."
+                        $script:Logger.Debug("Use mapping '$Mapping' = '$($CorePkg.Definition.Mappings[$Mapping])'.")
                         $Mappings[$Mapping] = $CorePkg.Definition.Mappings[$Mapping]
                     }
                 }
@@ -110,7 +114,7 @@ Function Compare-OSDriverPackage {
                 foreach ($IgnoreID in ($CorePkg.Definition.HardwareIDs.Keys)) {
                     $IgnoreValue = $CorePkg.Definition.HardwareIDs[$IgnoreID]
                     if ($IgnoreValue -eq 'Ignore') {
-                        Write-Verbose "  Adding HardwareID '$IgnoreID' to list of IgnoredIDs."
+                        $script:Logger.Debug("Adding HardwareID '$IgnoreID' to list of IgnoredIDs.")
                         $IgnoreIDs += $IgnoreID
                     }
                 }
@@ -120,7 +124,7 @@ Function Compare-OSDriverPackage {
             if ($CorePkg.Definition.Contains('OSDrivers')){
                 if ($CorePkg.Definition.OSDrivers.Contains('IgnoreVersion')){
                     if (($CorePkg.Definition.OSDrivers['IgnoreVersion'] -eq 'Yes') -or ($CorePkg.Definition.OSDrivers['IgnoreVersion'] -eq 'True')) {
-                        Write-Verbose "Core Driver package is configured to ignore versions."
+                        $script:Logger.Debug("Core Driver package is configured to ignore versions.")
                         $IgnoreCoreVersion = $true
                     }
                 }
@@ -133,7 +137,7 @@ Function Compare-OSDriverPackage {
             }
 
             foreach ($Driver in $PkgDrivers) {
-                Write-Verbose "    Driver : $($Driver.Driverfile)"
+                $script:Logger.Debug("Current driver : $($Driver.Driverfile)")
                 $Drivername = (Split-Path $Driver.DriverFile -Leaf)
                 $CoreDriver = $null
 
@@ -145,13 +149,13 @@ Function Compare-OSDriverPackage {
                         $Found = $true
                         $CoreDriver = $_
                         $_
-                        #Write-Verbose "Found matching Driver '$($_.DriverFile)'."
+                        $script:Logger.Trace("Found matching driver '$($_.DriverFile)'.")
                     } elseif ($Mappings.ContainsKey($CoreDriverName)) {
                         foreach ($Mapping in ($Mappings[$CoreDrivername]) -split ',') {
                             if ($DriverName -like $Mapping) {
                                 $Found = $true
                                 $_
-                                #Write-Verbose "Found matching Driver '$($_.DriverFile)'."
+                                $script:Logger.Trace("Found matching driver '$($_.DriverFile)'.")
                             }
                         }
                     } elseif ($Mappings.ContainsKey($DriverName)) {
@@ -159,19 +163,19 @@ Function Compare-OSDriverPackage {
                             if ($DriverName -like $Mapping) {
                                 $Found = $true
                                 $_
-                                #Write-Verbose "Found matching Driver '$($_.DriverFile)'."
+                                $script:Logger.Trace("Found matching driver '$($_.DriverFile)'.")
                             }
                         }
                     }
 
                     if ((-Not($Found)) -and ($Driver.ClassName -eq $_.ClassName) -and ($Driver.ProviderName -eq $_.ProviderName)) {
                         $_
-                        #Write-Verbose "Found matching Driver '$($_.DriverFile)'."
+                        $script:Logger.Trace("Found matching driver '$($_.DriverFile)'.")
                     }
                 }
 
                 if ($CoreDrivers.Count -eq 0) {
-                    Write-Verbose "    No related Driver in '$($DriverPackage.DriverPackage)'."
+                    $script:Logger.Debug("No related driver in '$($DriverPackage.DriverPackage)'.")
                 } else {
                     # Prepare Drivers
                     $PackageHardwareIDs = @()
@@ -199,7 +203,12 @@ Function Compare-OSDriverPackage {
 
     end {
         # Return list of Result objects. Original DriverPackage will be updated as well.
-        $DriverPackage.Drivers | Where-Object {$null -ne $_.Replace}
-        Write-Verbose "Finished comparing Driver Package."
+        $Result = $DriverPackage.Drivers | Where-Object {$null -ne $_.Replace}
+        if ($Result.Count -gt 0) {
+            $script:Logger.Info("Found $($Result.Count) drivers that can be removed.")
+        } else {
+            $script:Logger.Info("Found no drivers that can be removed.")
+        }
+
     }
 }

@@ -12,7 +12,7 @@ function Compress-Folder {
     [CmdletBinding(SupportsShouldProcess)]
     param (
         # Specifies the name and path of Folder that should be compress
-        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Parameter(Mandatory, Position = 0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [Alias("FullName")]
         [string[]]$Path,
@@ -40,29 +40,19 @@ function Compress-Folder {
         [switch]$RemoveSource
     )
 
-    begin{
-        if (-not $PSBoundParameters.ContainsKey('Confirm')) {
-            $ConfirmPreference = $PSCmdlet.SessionState.PSVariable.GetValue('ConfirmPreference')
-        }
-        if (-not $PSBoundParameters.ContainsKey('WhatIf')) {
-            $WhatIfPreference = $PSCmdlet.SessionState.PSVariable.GetValue('WhatIfPreference')
-        }
-        Write-Verbose "Start compressing folder(s)."
-    }
-
     process {
+        $script:Logger.Trace("Compress folder ('Path':'$Path', 'ArchiveType':'$ArchiveType', 'HighCompression':'$HighCompression', 'PassThru':'$PassThru', 'ShowMakeCabOutput':'$ShowMakeCabOutput', 'KeepMakeCabFile':'$KeepMakeCabFile', 'RemoveSource':'$RemoveSource')")
+
         foreach ($Folder in $Path){
-            Write-Verbose "  Processing folder '$Folder'."
             $ArchiveBaseName = (Get-Item $Folder).Name
             $DestinationFolder = (Get-Item $Folder).Parent.FullName.Trim("\")
             $FolderFullName = (Get-Item $Folder).Fullname.Trim("\")
-
 
             if ($ArchiveType -eq 'ZIP') {
                 $ArchiveFileName = "$ArchiveBaseName.zip"
                 $ArchiveFullName = Join-Path -Path $DestinationFolder -ChildPath $ArchiveFileName
                 if ($PSCmdlet.ShouldProcess("Creating archive '$ArchiveFullName'.")) {
-                    Write-Verbose "  Compressing folder '$FolderFullName' to '$ArchiveFullName'."
+                    $script:Logger.Debug("Compressing folder '$FolderFullName' to '$ArchiveFullName'.")
                     if (Test-Path $ArchiveFullName) {
                         Remove-Item -Path $ArchiveFullName -Force
                     }
@@ -72,7 +62,7 @@ function Compress-Folder {
             } else {
                 $ArchiveFileName = "$ArchiveBaseName.cab"
                 $ArchiveFullName = Join-Path -Path $DestinationFolder -ChildPath $ArchiveFileName
-                Write-Verbose '  Generating MakeCAB directive file.'
+                $script:Logger.Debug('Generating MakeCAB directive file.')
                 $DirectiveString = [System.Text.StringBuilder]::new()
                 [void]$DirectiveString.AppendLine(';*** MakeCAB Directive file;')
                 [void]$DirectiveString.AppendLine('.OPTION EXPLICIT')
@@ -101,14 +91,16 @@ function Compress-Folder {
                     [void]$DirectiveString.AppendLine("""$_"" ""$($_.SubString($FolderFullName.Length + 1))""")
                 }
                 if ($PSCmdlet.ShouldProcess("Creating archive '$ArchiveFullName'.")) {
-                    Write-Verbose "  Compressing folder '$FolderFullName' to '$ArchiveFullName'."
+                    $script:Logger.Debug("Compressing folder '$FolderFullName' to '$ArchiveFullName'.")
                     $DirectiveString.ToString() | Out-File -FilePath $DirectivePath -Encoding UTF8
+                    $script:Logger.Trace($DirectiveString.ToString())
                     if ($MakeCabOutput.IsPresent) {
                         makecab /F $DirectivePath
                     } else {
                         makecab /F $DirectivePath | Out-Null
                     }
                     if (-Not($KeepMakeCabFile.IsPresent)) {
+                        $script:Logger.Trace('Removing temporary files.')
                         Remove-Item $DirectivePath
                         if (Test-Path 'setup.inf') {Remove-Item 'setup.inf' -Force}
                         if (Test-Path 'setup.rpt') {Remove-Item 'setup.rpt' -Force}
@@ -117,7 +109,7 @@ function Compress-Folder {
             }
 
             if ($RemoveSource.IsPresent){
-                Write-Verbose ' Removing source files.'
+                $script:Logger.Debug('Removing source files.')
                 Remove-Item -Path $Folder -Recurse -Force
             }
 
@@ -125,8 +117,5 @@ function Compress-Folder {
                 $ArchiveFullName
             }
         }
-    }
-    end {
-        Write-Verbose "Finished compressing folder(s)."
     }
 }

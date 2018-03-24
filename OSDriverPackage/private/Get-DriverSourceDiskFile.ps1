@@ -12,25 +12,15 @@ function Get-DriverSourceDiskFile {
     [OutputType([string[]])]
     param(
         # Specifies the name and path to the Driver file (inf).
-        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Parameter(Mandatory, Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({(Test-Path $_) -and ((Get-Item $_).Extension -eq '.inf')})]
         [Alias("FullName")]
         [string]$Path
     )
 
-    begin {
-        if (-not $PSBoundParameters.ContainsKey('Confirm')) {
-            $ConfirmPreference = $PSCmdlet.SessionState.PSVariable.GetValue('ConfirmPreference')
-        }
-        if (-not $PSBoundParameters.ContainsKey('WhatIf')) {
-            $WhatIfPreference = $PSCmdlet.SessionState.PSVariable.GetValue('WhatIfPreference')
-        }
-        Write-Verbose "Start reading Driver File."
-    }
-
     process {
-        Write-Verbose "  Reading Driver File '$Path'."
+        $script:Logger.Trace("Get driver source disk files ('Path':'$Path')")
 
         $SourceDiskFiles = [string[]]@()
         # Add inf file itself to the list of SourceDiskFiless
@@ -47,13 +37,13 @@ function Get-DriverSourceDiskFile {
                 # if it exists, it should be at the very end of an inf file
                 # Some inf files have some rubbish after this which could cause problems
                 # TODO: Check if this line also shows up in the middle of an inf file
-                Write-Verbose "Stop parsing inf file due to '; set SIGNING_KEY_VERSION' line."
+                $script:Logger.Debug("Stop parsing inf file due to '; set SIGNING_KEY_VERSION' line.")
                 break
             }
             "^\[(.+)\]$"  {
                 # Section
                 $Section = $Matches[1]
-                Write-Verbose "Section: $Section"
+                $script:Logger.Trace("Section: $Section")
             }
             "^(?!;|#)(.+?)\s*=\s*(.*)" {
                 # Key
@@ -61,7 +51,7 @@ function Get-DriverSourceDiskFile {
                     # Get catalog file
                     if ($Matches[1] -like 'CatalogFile*') {
                         $SourceDiskFiles += $Matches[2] -replace ';(.+)' ,''
-                        Write-Verbose "Catalog file found: '$($Matches[2])'."
+                        $script:Logger.Trace("Catalog file found: '$($Matches[2])'.")
                     }
                 } elseif ($Section -eq 'Strings') {
                     # Folder names can contain variables
@@ -70,12 +60,12 @@ function Get-DriverSourceDiskFile {
                     $Value = $Matches[2] -replace ';(.+)' ,''
                     $Value = $Value.Trim().Trim('"')
                     $Strings[$Matches[1]] = $Value.Trim()
-                    Write-Verbose "Variable found: $($Matches[1]) = $Value"
+                    $script:Logger.Trace("Variable found: $($Matches[1]) = $Value")
                 } elseif ($Section -like 'SourceDisksNames*') {
-                    Write-Verbose "SourceDisk found: $_"
+                    $script:Logger.Trace("SourceDisk found: $_")
                     $Disks[$Matches[1]] = $Matches[2] -replace ';(.+)' ,''
                 } elseif ($Section -like 'SourceDisksFiles*') {
-                    Write-Verbose "SourceFile found: $_"
+                    $script:Logger.Trace("SourceFile found: $_")
                     $Files[$Matches[1]] = $Matches[2] -replace ';(.+)' ,''
                 }
             }
@@ -83,7 +73,7 @@ function Get-DriverSourceDiskFile {
 
         # Resolve 'SourceDisksNames' values first if necessary
         if ($Disks.Count -gt 0) {
-            Write-Verbose "Processing SourceDisks ..."
+            $script:Logger.Trace("Processing SourceDisks ...")
             foreach ($Disk in @($Disks.Keys)) {
                 $Values = (($Disks["$Disk"]) -split ',')
                 $DiskName = ''
@@ -103,7 +93,7 @@ function Get-DriverSourceDiskFile {
                                 if ($Strings.ContainsKey($VarName)){
                                     $DiskName = $DiskName -replace '',"$($Strings[$VarName])"
                                 } else {
-                                    Write-Verbose "Unable to resolve '$($Matches[1])' of SourceDisksName '$($Disks["$Disk"])'."
+                                    $script:Logger.Warn("Unable to resolve '$($Matches[1])' of SourceDisksName '$($Disks["$Disk"])'.")
                                 }
                             }
                         }
@@ -121,12 +111,13 @@ function Get-DriverSourceDiskFile {
                 # remove facing and trailing '\'
                 $Diskname = $Diskname.Trim('\')
                 $Disks["$Disk"] = $DiskName
-                Write-Verbose "SourceDisk: $Disk = $Diskname"
+                $script:Logger.Trace("SourceDisk: $Disk = $Diskname")
             }
         }
 
         # now get proper SourceDisksFiles including path
         if ($Files.Count -gt 0) {
+            $script:Logger.Trace("Processing SourceDisksFiles ...")
             foreach ($File in @($Files.Keys)) {
                 $Values = $Files["$File"] -split ','
                 $Filepath = $Disks["$($Values[0])"]
@@ -134,20 +125,20 @@ function Get-DriverSourceDiskFile {
                     # possible subfolder specified
                     $Subfolder = ''
                     if (-Not([string]::IsNullOrEmpty($Values[1]))) {
-                        Write-Verbose "Subfolder specified $($Values[1])"
+                        $script:Logger.Trace("Subfolder specified $($Values[1])")
                         # subfolder specified
                         # e.g. Driver.cur	= 1,%Cursor_DataPath%
                         if ($Values[1] -match '%(.+?)%') {
-                            Write-Verbose "Subfolder contains variable."
+                            $script:Logger.Trace("Subfolder contains variable.")
                             # subfolder contains a variable. Resolve
                             $VarName = $Matches[1]
-                            Write-Verbose "Variable name : $VarName"
+                            $script:Logger.Trace("Variable name : $VarName")
                             if (-Not([string]::IsNullOrEmpty($VarName))) {
                                 if ($Strings.ContainsKey($VarName)){
                                     $Subfolder = $Values[1] -replace '%(.+?)%',"$($Strings[$VarName])"
-                                    Write-Verbose "Epxand to '$Subfolder'"
+                                    $script:Logger.Trace("Epxand to '$Subfolder'")
                                 } else {
-                                    Write-Verbose "Unable to resolve '$($Matches[1])' of SourceDisksFiles '$($Files["$File"])'."
+                                    $script:Logger.Warn("Unable to resolve '$($Matches[1])' of SourceDisksFiles '$($Files["$File"])'.")
                                     $Subfolder = $Values[1]
                                 }
                             } else {
@@ -174,17 +165,14 @@ function Get-DriverSourceDiskFile {
 
                 if ([string]::IsNullOrEmpty($Filepath)) {
                     $SourceDiskFiles += $File
-                    Write-Verbose "SourceDiskFile: $File"
+                    $script:Logger.Trace("SourceDiskFile: $File")
                 } else {
                     $SourceDiskFiles += "$FilePath\$File"
-                    Write-Verbose "SourceDiskFile: $FilePath\$File"
+                    $script:Logger.Trace("SourceDiskFile: $FilePath\$File")
                 }
             }
         }
 
         $SourceDiskFiles
-    }
-    end {
-        Write-Verbose "Finished reading Driver File."
     }
 }

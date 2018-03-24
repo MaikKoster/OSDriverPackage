@@ -13,29 +13,17 @@ function Get-OSDriverPackageDefinition {
     [CmdletBinding()]
     param (
         # Specifies the name and path to the Driver Package Definition file.
-        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Parameter(Mandatory, Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({(Test-Path $_) -and ((Get-Item $_).Extension -eq '.txt')})]
         [Alias("FullName")]
         [string]$Path
     )
 
-    begin {
-        if (-not $PSBoundParameters.ContainsKey('Confirm')) {
-            $ConfirmPreference = $PSCmdlet.SessionState.PSVariable.GetValue('ConfirmPreference')
-        }
-        if (-not $PSBoundParameters.ContainsKey('WhatIf')) {
-            $WhatIfPreference = $PSCmdlet.SessionState.PSVariable.GetValue('WhatIfPreference')
-        }
-        Write-Verbose "Start getting Driver Package Definition from '$Path'."
-    }
-
     process {
-        Write-Verbose "  Getting Driver Package Definition from '$Path'."
+        $script:Logger.Trace("Get driver package definition ('Path':'$Path')")
+        $script:Logger.Info("Get driver package definition from '$Path'.")
 
         Read-DefinitionFile -Path $Path
-    }
-    end{
-        Write-Verbose "Finished getting Driver Package Definition."
     }
 }

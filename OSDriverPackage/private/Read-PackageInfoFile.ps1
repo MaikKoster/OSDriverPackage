@@ -13,7 +13,7 @@ Function Read-PackageInfoFile {
     [CmdletBinding()]
     param(
         # Specifies the name and path of the Definition file.
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory, Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({(Test-Path $_) -and ((Get-Item $_).Extension -eq '.json')})]
         [Alias("FullName")]
@@ -21,10 +21,9 @@ Function Read-PackageInfoFile {
     )
 
     process {
-        Write-Verbose "Start reading Driver Package Info File '$Path'."
+        $script:Logger.Trace("Read driver package info file ('Path':'$Path')")
 
+        $script:Logger.Debug("Read driver package info file from '$Path'.")
         Get-Content -Path $Path | ConvertFrom-Json
-
-        Write-Verbose "Finished reading Driver Package Info File."
     }
 }

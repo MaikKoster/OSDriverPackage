@@ -13,14 +13,14 @@ function Copy-OSDriverPackage {
         # Specifies the path to the Driver Package.
         # If a folder is specified, all Driver Packages within that folder and subfolders
         # will be returned, based on the additional conditions
-        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Parameter(Mandatory, Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({Test-Path $_})]
         [Alias("FullName")]
         [string]$Path,
 
         # Specifies the
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory, Position=1)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({Test-Path $_})]
         [string]$Destination,
@@ -49,36 +49,22 @@ function Copy-OSDriverPackage {
         [string[]]$Model
     )
 
-    begin {
-        if (-not $PSBoundParameters.ContainsKey('Confirm')) {
-            $ConfirmPreference = $PSCmdlet.SessionState.PSVariable.GetValue('ConfirmPreference')
-        }
-        if (-not $PSBoundParameters.ContainsKey('WhatIf')) {
-            $WhatIfPreference = $PSCmdlet.SessionState.PSVariable.GetValue('WhatIfPreference')
-        }
-        Write-Verbose "Start copying Driver Packages to '$Destination'."
-    }
-
     process {
-        Write-Verbose "  Processing path '$Path'."
+        $script:Logger.Trace("Copy driver package ('Path':'$Path', 'Destination':'$Destination', 'Name':'$($Name -join ',')', 'Tag':'$($Tag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'Make':'$($Make -join ',')', 'Model':'$($Model -join ',')'")
 
         $DriverPackages = Get-OSDriverPackage -Path $Path -Name $Name -OSVersion $OSVersion -Tag $Tag -Make $Make -Model $Model
-
         Foreach ($DriverPackage in $DriverPackages){
             #TODO: Update to use Robocopy. Faster and more reliable
             $DriverPackageName = $DriverPackage.DriverPackage
-            Write-Verbose "    Copying Driver Package '$DriverPackageName'."
+            $script:Logger.Info("Copying driver package '$DriverPackageName' to '$Destination'.")
             Copy-Item -Path $DriverPackageName -Destination $Destination
             $DefinitionFile = $DriverPackage.DefinitionFile
             if (-Not(Test-Path $DefinitionFile)) {
-                Write-Warning "    Definition File '$DefinitionFile' is missing. Creating stub file."
+                $script:Logger.Warn("Definition File '$DefinitionFile' is missing. Creating stub file.")
                 New-OSDriverPackageDefinition -DriverPackagePath $DriverPackageName
             }
-            Write-Verbose "    Copying Definition file '$DefinitionFile'."
+            $script:Logger.Info("Copying definition file '$DefinitionFile' to '$Destination'.")
             Copy-Item -Path $DefinitionFile -Destination $Destination
         }
-    }
-    end {
-        Write-Verbose "Finished copying Driver Package."
     }
 }

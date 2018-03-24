@@ -11,29 +11,21 @@ function Get-OSDriver {
     [OutputType([PSCustomObject])]
     param (
         # Specifies the name and path for the driver file
-        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Parameter(Mandatory, Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({(Test-Path $_) -and ((Get-Item $_).Extension -match '\.(inf|json)')})]
         [Alias("FullName")]
         [string]$Path
     )
 
-    begin {
-        if (-not $PSBoundParameters.ContainsKey('Confirm')) {
-            $ConfirmPreference = $PSCmdlet.SessionState.PSVariable.GetValue('ConfirmPreference')
-        }
-        if (-not $PSBoundParameters.ContainsKey('WhatIf')) {
-            $WhatIfPreference = $PSCmdlet.SessionState.PSVariable.GetValue('WhatIfPreference')
-        }
-        Write-Verbose "Start getting Windows Driver info."
-    }
-
     process {
+        $script:Logger.Trace("Get driver ('Path':'$Path')")
+
         $Driver = Get-Item $Path
         if ($Driver.Name -eq 'autorun.inf') {
-            Write-Verbose "  Skipping '$Path'."
+            $script:Logger.Warn("Skipping '$Path'.")
         } elseif ($Driver.Extension -eq '.inf') {
-            Write-Verbose "  Getting Windows Driver info from '$Path'"
+            $script:Logger.Info("Get windows driver info from '$Path'")
 
             #TODO: Get-WindowsDriver requires elevation! Might need to be replaced. Not sure if it's worth the effort
             # Get Windows Drivers info using Dism.
@@ -70,14 +62,12 @@ function Get-OSDriver {
                         $HardwareID
                     } | Group-Object  HardwareID, Architecture | ForEach-Object {$_.Group | Select-Object -First 1} | Sort-Object HardwareID)
                 }
+            } else {
+                $Logger.Error("Failed to get windows driver.")
             }
         } elseif ($Driver.Extension -eq '.json') {
+            $script:Logger.Info("Get windows driver info from '$Path'")
             Read-PackageInfoFile -Path ($Driver.FullName)
         }
     }
-
-    end {
-        Write-Verbose "Finished reading Windows Driver info."
-    }
-
 }

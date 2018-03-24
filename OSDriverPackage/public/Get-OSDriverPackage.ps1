@@ -16,7 +16,7 @@ function Get-OSDriverPackage {
     param (
         # Specifies the path to the Driver Package.
         # If a folder is specified, all Driver Packages within that folder and subfolders will be returned
-        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Parameter(Mandatory, Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({Test-Path $_})]
         [Alias("FullName")]
@@ -50,31 +50,21 @@ function Get-OSDriverPackage {
         [string[]]$Model
     )
 
-    begin {
-        if (-not $PSBoundParameters.ContainsKey('Confirm')) {
-            $ConfirmPreference = $PSCmdlet.SessionState.PSVariable.GetValue('ConfirmPreference')
-        }
-        if (-not $PSBoundParameters.ContainsKey('WhatIf')) {
-            $WhatIfPreference = $PSCmdlet.SessionState.PSVariable.GetValue('WhatIfPreference')
-        }
-        Write-Verbose "Start getting Driver Package."
-    }
-
     process {
-        Write-Verbose "  Processing path '$Path'."
+        $script:Logger.Trace("Get driver package ('Path':'$Path', 'Name':'$($Name -join ',')', 'Tag':'$($Tag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'Architecture':'$($Architecture -join ',')', 'Make':'$($Make -join ',')', 'Model':'$($Model -join ',')'  ")
 
         # Generic logic
         $Root = Get-Item -Path ($Path.Trim("\"))
 
         if ($Root.PSIsContainer) {
+            $script:Logger.Debug('Path supplied. Check if there is a driver package with the same name.')
             if (Test-Path "$($Root.FullName).cab") {
                 $Root = Get-Item -Path "$($Root.FullName).cab"
             } elseif (Test-Path "$($Root.FullName).zip") {
                 $Root = Get-Item -Path "$($Root.FullName).zip"
             }
-        }
-
-        if ($Root.Extension -eq '.txt'){
+        } elseif ($Root.Extension -eq '.txt'){
+            $script:Logger.Debug('Driver package defition file supplied. Using driver package file name.')
             if (Test-Path ($Root.FullName -replace '.txt', '.cab')) {
                 $Root = Get-Item ($Root.FullName -replace '.txt', '.cab')
             } elseif (Test-Path ($Root.FullName -replace '.txt', '.zip')) {
@@ -83,7 +73,7 @@ function Get-OSDriverPackage {
         }
 
         if (($Root.Extension -eq '.zip') -or ($Root.Extension -eq '.cab')) {
-            Write-Verbose " Processing Driver Package '$($Root.Fullname)'"
+            $script:Logger.Info("Get driver package '$($Root.Fullname)'.")
 
             $DefinitionFileName = $Root.FullName -replace "$($Root.Extension)", '.txt'
             $InfoFileName = $Root.FullName -replace "$($Root.Extension)", '.json'
@@ -91,35 +81,39 @@ function Get-OSDriverPackage {
             if (Test-Path $DefinitionFileName) {
                 $Definition = Get-OSDriverPackageDefinition -Path ($DefinitionFileName)
             } else {
-                Write-Warning "  No Definition file for Driver Package '$($Root.Name)' found. Creating stub."
-                Write-Warning "  Please update manually so filters can be applied properly."
+                $script:Logger.Warn("No definition file for driver package '$($Root.Name)' found. Creating stub.")
+                $script:Logger.Warn("Please update manually so filters can be applied properly.")
                 New-OSDriverPackageDefinition -DriverPackagePath $Root.FullName
                 $Definition = Get-OSDriverPackageDefinition -Path ($DefinitionFileName)
             }
 
-            Write-Verbose "  Evaluating criteria."
+            $script:Logger.Info("Evaluating criteria.")
 
             if ($null -eq $Definition) {
-                Write-Warning "    Invalid Definition file for Driver Package '$($Root.Name)'. Skipping Driver package."
+                $script:Logger.Warn("Invalid definition file for driver package '$($Root.Name)'. Skipping driver package.")
             } else {
                 $Section = $Definition['OSDrivers']
-                if (-Not(Compare-Criteria -Section $Section -Filter $OSVersion -Include 'OSVersion')) {
-                    $IncludeDriverPackage = $false
-                } elseif (-Not(Compare-Criteria -Section $Section -Filter $Architecture -Include 'Architecture')) {
-                    $IncludeDriverPackage = $false
-                } elseif (-Not(Compare-Criteria -Section $Section -Filter $Tag -Include 'Tag')) {
-                    $IncludeDriverPackage = $false
-                } elseif (-Not(Compare-Criteria -Section $Section -Filter $Make -Include 'Make')) {
-                    $IncludeDriverPackage = $false
-                } elseif (-Not(Compare-Criteria -Section $Section -Filter $Model -Include 'Model')) {
-                    $IncludeDriverPackage = $false
+                if ($null -ne $Section) {
+                    if (-Not(Compare-Criteria -Section $Section -Filter $OSVersion -Include 'OSVersion')) {
+                        $IncludeDriverPackage = $false
+                    } elseif (-Not(Compare-Criteria -Section $Section -Filter $Architecture -Include 'Architecture')) {
+                        $IncludeDriverPackage = $false
+                    } elseif (-Not(Compare-Criteria -Section $Section -Filter $Tag -Include 'Tag')) {
+                        $IncludeDriverPackage = $false
+                    } elseif (-Not(Compare-Criteria -Section $Section -Filter $Make -Include 'Make')) {
+                        $IncludeDriverPackage = $false
+                    } elseif (-Not(Compare-Criteria -Section $Section -Filter $Model -Include 'Model')) {
+                        $IncludeDriverPackage = $false
+                    } else {
+                        $IncludeDriverPackage = $true
+                    }
                 } else {
-                    $IncludeDriverPackage = $true
+                    $script:Logger.Warn("Invalid definition file for driver package '$($Root.Name)'. Skipping driver package.")
                 }
             }
 
             if ($IncludeDriverPackage) {
-                Write-Verbose "  Driver Package matches the supplied criteria."
+                $script:Logger.Info("Driver package matches the supplied criteria.")
                 # Create Driver Info file if necessary
                 if (-Not(Test-Path $InfoFileName)) {
                     Read-OSDriverPackage -Path $Root
@@ -132,9 +126,11 @@ function Get-OSDriverPackage {
                     Drivers = (Get-OSDriver -Path $InfoFileName)
                 }
             } else {
-                Write-Verbose "  Driver Package doesn't match the supplied criteria."
+                $script:Logger.Info("Driver package doesn't match the supplied criteria.")
             }
         } else {
+            $script:Logger.Debug("Searching for driver packages in '$Path'.")
+
             $GetParams = @{
                 Path = $Path
                 Include = @('*.cab', '*.zip')
@@ -145,11 +141,7 @@ function Get-OSDriverPackage {
                 $GetParams.Filter = $Name
             }
             Get-ChildItem @GetParams| Get-OSDriverPackage
-
         }
     }
 
-    end{
-        Write-Verbose "Finished getting Driver Package."
-    }
 }

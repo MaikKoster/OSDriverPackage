@@ -13,7 +13,7 @@ function Get-PnPDevice {
     [OutputType([PSCustomObject])]
     param (
         # Specifies the the name of the computer
-        [Parameter(ValueFromPipeline)]
+        [Parameter(Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [string]$ComputerName,
 
         # Specifies, if only a list of HardwareIDs should be returned.
@@ -21,18 +21,15 @@ function Get-PnPDevice {
         [switch]$HardwareIDOnly
     )
 
-    begin {
-        Write-Verbose "Start getting PnP devices"
-    }
-
     process{
+        $script:Logger.Trace("Get PnP devices ('ComputerName':'$ComputerName', 'HardwareIDOnly':'$HardwareIDOnly'")
 
         $Props = @{
             ClassName = "Win32_PnPEntity"
         }
 
         if (-Not([string]::IsNullOrEmpty($ComputerName))){
-            Write-Verbose "  Processing '$Computer'"
+            $script:Logger.Info("Processing '$Computer'")
             $Props.ComputerName = $ComputerName
         }
 
@@ -43,9 +40,5 @@ function Get-PnPDevice {
         } else {
             $PnPEntities
         }
-    }
-
-    end {
-        Write-Verbose "Start getting PnP devices"
     }
 }

@@ -12,19 +12,18 @@ function Get-FolderSize {
     [OutputType([PSCustomObject])]
     param (
         # Specifies the path of the folder.
-        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Parameter(Mandatory, Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({(Test-Path $_)})]
         [Alias("FullName")]
         [string]$Path
     )
 
-    begin {
-        Write-Verbose "Start getting folder size."
-    }
     process {
+        $script:Logger.Trace("Get folder size ('Path':'$Path')")
+
         try {
-            Write-Verbose "  Processing folder '$Path'."
+            $script:Logger.Debug("Processing folder '$Path'.")
 
             robocopy /l /nfl /ndl /njh $Path "$($Env:Temp)\VUVWXYZ" /e /bytes |
                 Where-Object { $_ -match "^[ \t]+(Dirs|Files|Bytes) :[ ]+\d" } |
@@ -43,15 +42,12 @@ function Get-FolderSize {
                     {$PSItem -le 1GB} {$Size = "$([Math]::Round($Bytes/1MB,1)) MBytes)"; Break}
                     default {$Size = "$([Math]::Round($Bytes/1GB,1)) GBytes)"; Break}
                 }
-                Write-Verbose "    Directories: $Dirs, Files: $Files, Size: $Size."
+                $script:Logger.Debug("Directories: $Dirs, Files: $Files, Size: $Size.")
                 [PSCustomObject]@{
                     Dirs = $Dirs
                     Files = $Files
                     Bytes = $Bytes
                 }
         }catch{$null}
-    }
-    end {
-        Write-Verbose "Finished getting folder size."
     }
 }

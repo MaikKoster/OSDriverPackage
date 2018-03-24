@@ -3,7 +3,7 @@
 function Compare-Result {
     [CmdLetBinding()]
     param(
-        [Parameter(Mandatory, ValueFromPipeline)]
+        [Parameter(Mandatory, Position=0, ValueFromPipeline)]
         [PSCustomObject[]]$Result
     )
 
@@ -12,6 +12,12 @@ function Compare-Result {
     }
 
     process{
+        if ($null -ne $Result) {
+            $script:Logger.Trace("Compare result ('Result':'$($Result | ConvertTo-Json)')")
+        } else {
+            $script:Logger.Trace("Compare result ('Result':'null")
+        }
+
         $ResultsToProcess += $Result
     }
 
@@ -30,7 +36,7 @@ function Compare-Result {
                         if (($DriverResult.MissingHardwareIDs.Count -gt 0) -and ($MissingID -notin ($DriverResult.MissingHardwareIDs)))  {
                             # supported by a different driver in the same package
                             # Remove from list of Missing HardwareIDs
-                            Write-Verbose "Missing HardwareID '$($MissingID.HardwareID)' is supported by a different Core Driver. Removing from Result ... "
+                            $script:Logger.Debug("Missing HardwareID '$($MissingID.HardwareID)' is supported by a different Core Driver. Removing from Result ... ")
                             $First.MissingHardwareIDs.Remove($MissingID)
                         }
                     }

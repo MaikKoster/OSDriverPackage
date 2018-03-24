@@ -19,25 +19,16 @@ function Remove-OSDriver {
     [CmdletBinding(SupportsShouldProcess)]
     param (
         # Specifies the name and path for the driver file
-        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Parameter(Mandatory, Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({(Test-Path $_) -and ((Get-Item $_).Extension -eq '.inf')})]
         [Alias("FullName")]
         [string]$Path
     )
 
-    begin {
-        if (-not $PSBoundParameters.ContainsKey('Confirm')) {
-            $ConfirmPreference = $PSCmdlet.SessionState.PSVariable.GetValue('ConfirmPreference')
-        }
-        if (-not $PSBoundParameters.ContainsKey('WhatIf')) {
-            $WhatIfPreference = $PSCmdlet.SessionState.PSVariable.GetValue('WhatIfPreference')
-        }
-        Write-Verbose "Start removing Driver."
-    }
-
     process {
-        Write-Verbose " Processing path '$Path'."
+        $script:Logger.Trace("Remove driver ('Path':'$Path'")
+        $script:Logger.Info("Removing driver '$Path'.")
 
         # Get Driver information
         $DriverInfo = Get-OSDriver -Path $Path
@@ -54,11 +45,11 @@ function Remove-OSDriver {
             foreach ($DriverSourceFile in $DriverInfo.SourceFiles) {
                 if ($ReferencedFiles -notcontains $DriverSourceFile) {
                     if ($PSCmdlet.ShouldProcess("Removing driver source file '$DriverSourceFile'.")) {
-                        Write-Verbose "  Removing driver source file '$DriverSourceFile'."
+                        $script:Logger.Debug("Removing driver source file '$DriverSourceFile'.")
                         Remove-Item -Path (Join-Path -Path $ParentPath -ChildPath $DriverSourceFile) -Force -ErrorAction SilentlyContinue
                     }
                 } else {
-                    Write-Verbose " Can't remove '$DriverSourceFile'. It is still referenced by another Driver."
+                    $script:Logger.Debug("Can't remove '$DriverSourceFile'. It is still referenced by another Driver.")
                 }
             }
 
@@ -67,7 +58,7 @@ function Remove-OSDriver {
             # Sometimes not all files are referenced in the inf and some stuff is left.
             # We can't take care about subfolder though.
             if ((Get-ChildItem -Path $ParentPath -Filter '*.inf').Count -eq 0) {
-                Write-Verbose "  Removing leftover files in '$ParentPath'."
+                $script:Logger.Debug("Removing leftover files in '$ParentPath'.")
                 # Also clean up subfolders, if there are no inf files present
                 if ((Get-ChildItem -Path $ParentPath -Filter '*.inf' -Recurse).Count -eq 0) {
                     Get-ChildItem -Path $ParentPath | Remove-Item -Force -Recurse
@@ -80,7 +71,7 @@ function Remove-OSDriver {
             if ((Get-ChildItem -Path $ParentPath -Recurse).Count -eq 0) {
                 $GrandParent = (Get-Item $ParentPath).Parent.FullName
                 if ($PSCmdlet.ShouldProcess("Removing empty folder '$ParentPath'.")) {
-                    Write-Verbose "  Removing empty folder '$ParentPath'."
+                    $script:Logger.Debug("Removing empty folder '$ParentPath'.")
                     Remove-Item -Path $ParentPath -Force
                 }
 
@@ -91,15 +82,11 @@ function Remove-OSDriver {
                 # TODO: Create recursive function if another level seems necessary
                 if ((Get-ChildItem -Path $GrandParent -include '*.inf', '*.cab', '*.zip' -Recurse).Count -eq 0) {
                     if ($PSCmdlet.ShouldProcess("Removing folder '$GrandParent'.")) {
-                        Write-Verbose "  Removing folder '$GrandParent'."
+                        $script:Logger.Debug("Removing folder '$GrandParent'.")
                         Remove-Item -Path $GrandParent -Force -Recurse
                     }
                 }
             }
         }
-    }
-
-    end {
-        Write-Verbose "Finished removing Driver."
     }
 }
