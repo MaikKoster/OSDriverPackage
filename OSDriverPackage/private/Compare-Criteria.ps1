@@ -24,7 +24,7 @@ function Compare-Criteria {
         $script:Logger.Trace("Compare criteria ('Section':'$($Section | ConvertTo-Json -Depth 2)', Filter':'$Filter', 'Include':'$Include', 'Exclude':'$Exclude')")
 
         $FoundMatch = $false
-        if ($null -ne $Filter) {
+        if ((($Filter -is [array]) -and ($Filter.Count -gt 0) -and (-Not([string]::IsNullOrEmpty($Filter[0])))) -or (-Not([string]::IsNullOrEmpty($Filter)))) {
             if ($Section.Keys -contains "$Include" ) {
                 $IncludeValue = $Section["$Include"]
             } else {
@@ -59,7 +59,7 @@ function Compare-Criteria {
             # Validate against Exclude if a match was found.
             # Exclude overwrites everything.
             if ([string]::IsNullOrEmpty($Exclude)) {
-                if (-Not([string]::IsNullOrEmpty($Exclude))) {
+                if (-Not([string]::IsNullOrEmpty($Include))) {
                     $Exclude = "Exclude$Include"
                 }
             }
