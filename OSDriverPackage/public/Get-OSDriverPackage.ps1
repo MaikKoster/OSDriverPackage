@@ -47,8 +47,23 @@ function Get-OSDriverPackage {
         # Filters the Driver Packages by Model(s)
         # Use values from Model property from Win32_ComputerSystem.
         # Wildcards are allowed e.g. *Latitude*
-        [string[]]$Model
+        [string[]]$Model,
+
+        # Specifies a list of HardwareIDs, that should be used to identify related Driver Package(s).
+        [string[]]$HardwareIDs,
+
+        # Specifies if the WQL command specified in the driver package definition file should be
+        # executed to identify matching Driver Package(s).
+        [switch]$UseWQL
     )
+
+    begin {
+        # Add HardwareIDs and all compatible IDs into a Hashtable to speed up search
+        $PnPIDs = @{}
+        if ($HardwareIDs.Count -gt 0) {
+            $HardwareIDs | Get-CompatibleID | ForEach-Object {$PnPIDs[$_]=$null}
+        }
+    }
 
     process {
         $script:Logger.Trace("Get driver package ('Path':'$Path', 'Name':'$($Name -join ',')', 'Tag':'$($Tag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'Architecture':'$($Architecture -join ',')', 'Make':'$($Make -join ',')', 'Model':'$($Model -join ',')'  ")
@@ -89,9 +104,7 @@ function Get-OSDriverPackage {
 
             $script:Logger.Info("Evaluating criteria.")
 
-            if ($null -eq $Definition) {
-                $script:Logger.Warn("Invalid definition file for driver package '$($Root.Name)'. Skipping driver package.")
-            } else {
+            if ($null -ne $Definition) {
                 $Section = $Definition['OSDrivers']
                 if ($null -ne $Section) {
                     if (-Not(Compare-Criteria -Section $Section -Filter $OSVersion -Include 'OSVersion')) {
@@ -110,6 +123,56 @@ function Get-OSDriverPackage {
                 } else {
                     $script:Logger.Warn("Invalid definition file for driver package '$($Root.Name)'. Skipping driver package.")
                 }
+
+                # Only search for Hardware IDs if Driver Package hasn't been matched yet.
+                if (-Not($IncludeDriverPackage)) {
+                    if ($PnPIDs.Count -gt 0) {
+                        # Get list of Driver Package Hardware IDs
+                        $PkgHardwareIDs = $Definition['PNPIDS']
+                        if ($null -ne $PkgHardwareIDs) {
+                            $script:Logger.Debug('Searching for Hardware IDs in driver package definition file.')
+                            foreach ($PkgHardwareID in $PkgHardwareIDs.Keys) {
+                                # Get compatible Hardware IDs
+                                $CompatibleIDs = Get-CompatibleID -HardwareID $PkgHardwareID
+
+                                foreach ($CompatibleID In $CompatibleIDs) {
+                                    if ($PnPIDS.ContainsKey($CompatibleID)) {
+                                        $script:Logger.Debug("HardwareID '$PkgHardwareID' is compatible with supplied list of HardwareIDs.")
+                                        $IncludeDriverPackage = $true
+                                        break
+                                    }
+                                }
+                            }
+                        } else {
+                            $script:Logger.Debug('No Hardware IDs specified in driver package definition file.')
+                        }
+                    }
+                }
+
+                # Only execute WQL if Driver Package hasn't been matched yet.
+                if (-Not($IncludeDriverPackage)) {
+                    if ($UseWQL.IsPresent) {
+                        # Get list of WQL queries
+                        $WQLQueries = $Definition['WQL']
+                        if ($null -ne $WQLQueries) {
+                            $script:Logger.Debug('Executing WQL queries from driver package definition file.')
+                            # As WQL queries are treated as comments. So the query is stored in the value
+                            foreach ($WQLQuery in $WQLQueries.Values) {
+                                $Result = Get-CimInstance -Query "$WQLQuery"
+
+                                if ($null -ne $Result) {
+                                    $script:Logger.Debug("WQL query '$WQLQuery' returned a result.")
+                                    $IncludeDriverPackage = $true
+                                        break
+                                }
+                            }
+                        } else {
+                            $script:Logger.Debug('No WQL queries defined in package definition file.')
+                        }
+                    }
+                }
+            } else {
+                $script:Logger.Warn("Invalid definition file for driver package '$($Root.Name)'. Skipping driver package.")
             }
 
             if ($IncludeDriverPackage) {

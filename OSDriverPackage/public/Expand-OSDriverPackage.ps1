@@ -42,14 +42,13 @@ function Expand-OSDriverPackage {
         foreach ($Archive in $Path){
             $script:Logger.Trace("Expand driver package ('Path':'$Path', 'DestinationPath':'$DestinationPath', 'Force':'$Force', 'RemoveArchive':'$RemoveArchive, 'PassThru':'$PassThru'")
 
-            $script:Logger.Info("Expanding driver package '$Archive'.")
             $ArchiveName = (Get-Item $Archive).BaseName
             $ArchivePath = (Get-Item $Archive).FullName.Trim("\")
             if ([string]::IsNullOrEmpty($DestinationPath)) {
                 $ArchiveDestinationPath = Split-Path $ArchivePath -Parent
             }
             $ArchiveDestination = Join-Path -Path $ArchiveDestinationPath -ChildPath $ArchiveName
-
+            $script:Logger.Info("Expanding driver package '$Archive' to '$ArchiveDestination'.")
             if (Test-Path $ArchiveDestination) {
                 if (-not($Force.IsPresent)) {
                     $script:Logger.Error("Archive destination '$ArchiveDestination' exists already and '-Force' is not specified.")
