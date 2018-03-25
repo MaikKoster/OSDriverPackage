@@ -13,11 +13,10 @@ Creates a new Driver Package.
 ## SYNTAX
 
 ```
-New-OSDriverPackage [-Path] <String> [[-ArchiveType] <String>] [[-OSVersion] <String[]>]
- [[-ExcludeOSVersion] <String[]>] [[-Architecture] <String[]>] [[-Tag] <String[]>] [[-Make] <String[]>]
- [[-ExcludeMake] <String[]>] [[-Model] <String[]>] [[-ExcludeModel] <String[]>] [[-URL] <String>]
- [-SkipPNPDetection] [-IgnoreSubSys] [-Force] [-KeepFiles] [-PassThru] [-WhatIf] [-Confirm]
- [<CommonParameters>]
+New-OSDriverPackage [-Path] <String> [-ArchiveType <String>] [-Tag <String[]>] [-ExcludeTag <String[]>]
+ [-OSVersion <String[]>] [-ExcludeOSVersion <String[]>] [-Architecture <String[]>] [-Make <String[]>]
+ [-ExcludeMake <String[]>] [-Model <String[]>] [-ExcludeModel <String[]>] [-URL <String>] [-SkipPNPDetection]
+ [-IgnoreSubSys] [-Force] [-KeepFiles] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -70,8 +69,40 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 2
+Position: Named
 Default value: ZIP
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Tag
+Specifies generic tag(s) that can be used to further identify the Driver Package.
+
+```yaml
+Type: String[]
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ExcludeTag
+Specifies the excluded generic tag(s).
+Can be used to e.g.
+identify specific Core Packages.
+
+```yaml
+Type: String[]
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
@@ -87,7 +118,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 3
+Position: Named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -104,7 +135,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 4
+Position: Named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -120,22 +151,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 5
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Tag
-Specifies generic tag(s) that can be used to further identify the Driver Package.
-
-```yaml
-Type: String[]
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: 6
+Position: Named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -151,7 +167,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 7
+Position: Named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -167,7 +183,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 8
+Position: Named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -183,7 +199,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 9
+Position: Named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -199,7 +215,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 10
+Position: Named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -214,7 +230,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 11
+Position: Named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False

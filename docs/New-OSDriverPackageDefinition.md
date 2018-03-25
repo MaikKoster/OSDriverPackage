@@ -14,10 +14,10 @@ Creates a new Driver Package definition file.
 
 ### PackageWithSettings (Default)
 ```
-New-OSDriverPackageDefinition -DriverPackagePath <String> [-OSVersion <String[]>]
- [-ExcludeOSVersion <String[]>] [-Architecture <String[]>] [-Tag <String[]>] [-ExcludeTag <String[]>]
- [-Make <String[]>] [-ExcludeMake <String[]>] [-Model <String[]>] [-ExcludeModel <String[]>] [-URL <String>]
- [-SkipPNPDetection] [-IgnoreSubSys] [-Force] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+New-OSDriverPackageDefinition [-DriverPackagePath] <String> [-Tag <String[]>] [-ExcludeTag <String[]>]
+ [-OSVersion <String[]>] [-ExcludeOSVersion <String[]>] [-Architecture <String[]>] [-Make <String[]>]
+ [-ExcludeMake <String[]>] [-Model <String[]>] [-ExcludeModel <String[]>] [-URL <String>] [-SkipPNPDetection]
+ [-IgnoreSubSys] [-Force] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### NameWithDefinition
@@ -28,8 +28,8 @@ New-OSDriverPackageDefinition -FileName <String> -Definition <OrderedDictionary>
 
 ### NameWithSettings
 ```
-New-OSDriverPackageDefinition -FileName <String> [-OSVersion <String[]>] [-ExcludeOSVersion <String[]>]
- [-Architecture <String[]>] [-Tag <String[]>] [-ExcludeTag <String[]>] [-Make <String[]>]
+New-OSDriverPackageDefinition -FileName <String> [-Tag <String[]>] [-ExcludeTag <String[]>]
+ [-OSVersion <String[]>] [-ExcludeOSVersion <String[]>] [-Architecture <String[]>] [-Make <String[]>]
  [-ExcludeMake <String[]>] [-Model <String[]>] [-ExcludeModel <String[]>] [-URL <String>] [-WQL <String[]>]
  [-PNPIDs <Hashtable>] [-Force] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
@@ -58,7 +58,7 @@ Parameter Sets: PackageWithSettings
 Aliases: Path
 
 Required: True
-Position: Named
+Position: 1
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
@@ -73,6 +73,40 @@ Parameter Sets: NameWithDefinition, NameWithSettings
 Aliases:
 
 Required: True
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Tag
+Specifies generic tag(s) that can be used to further identify the Driver Package.
+Can be used to e.g.
+identify specific Core Packages.
+
+```yaml
+Type: String[]
+Parameter Sets: PackageWithSettings, NameWithSettings
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ExcludeTag
+Specifies the excluded generic tag(s).
+Can be used to e.g.
+identify specific Core Packages.
+
+```yaml
+Type: String[]
+Parameter Sets: PackageWithSettings, NameWithSettings
+Aliases:
+
+Required: False
 Position: Named
 Default value: None
 Accept pipeline input: False
@@ -116,40 +150,6 @@ Accept wildcard characters: False
 ### -Architecture
 Specifies the supported Architectures.
 Recommended to use the tags x86, x64 and/or ia64.
-
-```yaml
-Type: String[]
-Parameter Sets: PackageWithSettings, NameWithSettings
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Tag
-Specifies generic tag(s) that can be used to further identify the Driver Package.
-Can be used to e.g.
-identify specific Core Packages.
-
-```yaml
-Type: String[]
-Parameter Sets: PackageWithSettings, NameWithSettings
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ExcludeTag
-Specifies the excluded generic tag(s).
-Can be used to e.g.
-identify specific Core Packages.
 
 ```yaml
 Type: String[]

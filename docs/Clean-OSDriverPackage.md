@@ -14,8 +14,8 @@ unneeded Drivers.
 ## SYNTAX
 
 ```
-Clean-OSDriverPackage [-CoreDriverPackage] <PSObject[]> [-DriverPackage] <PSObject> [[-CriticalIDs] <String[]>]
- [[-IgnoreIDs] <String[]>] [-IgnoreVersion] [[-Mappings] <Hashtable>] [-KeepFolder] [[-Architecture] <String>]
+Clean-OSDriverPackage [-CoreDriverPackage] <PSObject[]> [-DriverPackage] <PSObject> [-CriticalIDs <String[]>]
+ [-IgnoreIDs <String[]>] [-IgnoreVersion] [-Mappings <Hashtable>] [-KeepFolder] [-Architecture <String>]
  [<CommonParameters>]
 ```
 
@@ -68,7 +68,7 @@ Aliases:
 Required: True
 Position: 2
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -82,7 +82,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 3
+Position: Named
 Default value: @()
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -97,7 +97,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 4
+Position: Named
 Default value: @()
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -128,7 +128,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 5
+Position: Named
 Default value: @{}
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -160,7 +160,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 6
+Position: Named
 Default value: All
 Accept pipeline input: False
 Accept wildcard characters: False

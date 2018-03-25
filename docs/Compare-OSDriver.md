@@ -13,9 +13,8 @@ Checks if the supplied Driver can be replaced by the supplied Core Driver.
 ## SYNTAX
 
 ```
-Compare-OSDriver [-CoreDriver] <PSObject> [-Driver] <PSObject> [[-CriticalIDs] <String[]>]
- [[-IgnoreIDs] <String[]>] [[-PackageHardwareIDs] <PSObject[]>] [-IgnoreVersion] [-PassThru]
- [<CommonParameters>]
+Compare-OSDriver [-CoreDriver] <PSObject> [-Driver] <PSObject> [-CriticalIDs <String[]>]
+ [-IgnoreIDs <String[]>] [-PackageHardwareIDs <PSObject[]>] [-IgnoreVersion] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -57,14 +56,14 @@ Parameter Sets: (All)
 Aliases:
 
 Required: True
-Position: 1
+Position: 2
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
 ### -Driver
-Specifies that should be compared
+Specifies the driver that should be compared
 
 ```yaml
 Type: PSObject
@@ -72,7 +71,7 @@ Parameter Sets: (All)
 Aliases: PackageDriver
 
 Required: True
-Position: 2
+Position: 1
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -88,7 +87,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 3
+Position: Named
 Default value: @()
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -103,7 +102,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 4
+Position: Named
 Default value: @()
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -121,7 +120,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 5
+Position: Named
 Default value: @()
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -165,6 +164,8 @@ For more information, see about_CommonParameters (http://go.microsoft.com/fwlink
 ## INPUTS
 
 ## OUTPUTS
+
+### System.Boolean
 
 ## NOTES
 

@@ -13,7 +13,7 @@ Extracts files from a specified DriverPackage.
 ## SYNTAX
 
 ```
-Expand-OSDriverPackage [-Path] <String[]> [[-DestinationPath] <String>] [-Force] [-RemoveArchive] [-Passthru]
+Expand-OSDriverPackage [-Path] <String[]> [-DestinationPath <String>] [-Force] [-RemoveArchive] [-Passthru]
  [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
@@ -53,10 +53,10 @@ On default, a subfolder with the same name as the Driver Package will be used.
 ```yaml
 Type: String
 Parameter Sets: (All)
-Aliases:
+Aliases: Destination
 
 Required: False
-Position: 2
+Position: Named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False

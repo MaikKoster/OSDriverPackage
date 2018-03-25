@@ -13,7 +13,7 @@ Compresses the specified Driver Package into a cab file.
 ## SYNTAX
 
 ```
-Compress-OSDriverPackage [-Path] <String> [[-ArchiveType] <String>] [-Force] [-RemoveFolder] [-Passthru]
+Compress-OSDriverPackage [-Path] <String> [-ArchiveType <String>] [-Force] [-RemoveFolder] [-Passthru]
  [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
@@ -56,7 +56,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 2
+Position: Named
 Default value: ZIP
 Accept pipeline input: False
 Accept wildcard characters: False

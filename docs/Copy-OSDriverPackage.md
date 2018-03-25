@@ -13,8 +13,8 @@ Copies Driver Packages to a different location.
 ## SYNTAX
 
 ```
-Copy-OSDriverPackage [-Path] <String> [-Destination] <String> [[-Name] <String[]>] [[-Tag] <String[]>]
- [[-OSVersion] <String[]>] [[-Make] <String[]>] [[-Model] <String[]>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Copy-OSDriverPackage [-Path] <String> [-Destination] <String> [-Name <String[]>] [-Tag <String[]>]
+ [-OSVersion <String[]>] [-Make <String[]>] [-Model <String[]>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -73,7 +73,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 3
+Position: Named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -89,7 +89,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 4
+Position: Named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -108,7 +108,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 5
+Position: Named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -126,7 +126,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 6
+Position: Named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -144,7 +144,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 7
+Position: Named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False

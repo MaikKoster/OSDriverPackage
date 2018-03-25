@@ -13,8 +13,9 @@ Gets a Driver Package.
 ## SYNTAX
 
 ```
-Get-OSDriverPackage [-Path] <String> [[-Name] <String[]>] [[-Tag] <String[]>] [[-OSVersion] <String[]>]
- [[-Architecture] <String[]>] [[-Make] <String[]>] [[-Model] <String[]>] [<CommonParameters>]
+Get-OSDriverPackage [-Path] <String> [-Name <String[]>] [-Tag <String[]>] [-OSVersion <String[]>]
+ [-Architecture <String[]>] [-Make <String[]>] [-Model <String[]>] [-HardwareIDs <String[]>] [-UseWQL]
+ [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -60,7 +61,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 2
+Position: Named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -76,7 +77,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 3
+Position: Named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -95,7 +96,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 4
+Position: Named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -112,7 +113,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 5
+Position: Named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -130,7 +131,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 6
+Position: Named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -148,8 +149,39 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 7
+Position: Named
 Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -HardwareIDs
+Specifies a list of HardwareIDs, that should be used to identify related Driver Package(s).
+
+```yaml
+Type: String[]
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -UseWQL
+Specifies if the WQL command specified in the driver package definition file should be
+executed to identify matching Driver Package(s).
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: False
 Accept pipeline input: False
 Accept wildcard characters: False
 ```

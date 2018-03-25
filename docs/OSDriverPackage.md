@@ -11,6 +11,9 @@ Locale: en-US
 Powershell Module to handle the tooling around Driver Package management
 
 ## OSDriverPackage Cmdlets
+### [Apply-OSDriverPackage](Apply-OSDriverPackage.md)
+Applies the specified Driver Package(s) to the current computer.
+
 ### [Clean-OSDriverPackage](Clean-OSDriverPackage.md)
 Checks the supplied Driver Package against the Core Driver Package and cleans up all
 unneeded Drivers.

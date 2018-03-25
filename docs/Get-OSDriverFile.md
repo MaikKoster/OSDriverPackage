@@ -13,7 +13,7 @@ Finds specified driver files.
 ## SYNTAX
 
 ```
-Get-OSDriverFile [-Path] <String> [[-Files] <String>] [-Expand] [-WhatIf] [-Confirm] [<CommonParameters>]
+Get-OSDriverFile [-Path] <String> [-Files <String>] [-Expand] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -57,7 +57,7 @@ Parameter Sets: (All)
 Aliases:
 
 Required: False
-Position: 2
+Position: Named
 Default value: *.inf
 Accept pipeline input: False
 Accept wildcard characters: False
