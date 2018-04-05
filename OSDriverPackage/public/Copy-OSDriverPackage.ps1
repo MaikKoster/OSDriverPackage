@@ -19,10 +19,9 @@ function Copy-OSDriverPackage {
         [Alias("FullName")]
         [string]$Path,
 
-        # Specifies the
+        # Specifies the Destination to copy the Driver Packages to
         [Parameter(Mandatory, Position=1)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({Test-Path $_})]
         [string]$Destination,
 
         # Filters the Driver Packages by Name
@@ -38,6 +37,10 @@ function Copy-OSDriverPackage {
         # Wildcards are allowed e.g. Win*-x64
         [string[]]$OSVersion,
 
+        # Filters the Driver Packages by Architecture
+        # Recommended to use tags as e.g. x64, x86.
+        [string[]]$Architecture,
+
         # Filters the Driver Packages by Make(s)/Vendor(s)/Manufacture(s).
         # Use values from Manufacturer property from Win32_ComputerSystem.
         # Wildcards are allowed e.g. *Dell*
@@ -49,10 +52,18 @@ function Copy-OSDriverPackage {
         [string[]]$Model
     )
 
-    process {
-        $script:Logger.Trace("Copy driver package ('Path':'$Path', 'Destination':'$Destination', 'Name':'$($Name -join ',')', 'Tag':'$($Tag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'Make':'$($Make -join ',')', 'Model':'$($Model -join ',')'")
+    begin {
+        # Ensure Target Directory exists
+        if (-Not(Test-Path -Path $Destination)) {
+            $script:Logger.Info("Creating destination folder '$Destination'.")
+            $null = New-Item -Path $Destination -ItemType Directory -Force
+        }
+    }
 
-        $DriverPackages = Get-OSDriverPackage -Path $Path -Name $Name -OSVersion $OSVersion -Tag $Tag -Make $Make -Model $Model
+    process {
+        $script:Logger.Trace("Copy driver package ('Path':'$Path', 'Destination':'$Destination', 'Name':'$($Name -join ',')', 'Tag':'$($Tag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'Architecture':'$($Architecture -join ',')', 'Make':'$($Make -join ',')', 'Model':'$($Model -join ',')'")
+
+        $DriverPackages = Get-OSDriverPackage -Path $Path -Name $Name -OSVersion $OSVersion -Architecture $Architecture -Tag $Tag -Make $Make -Model $Model
         Foreach ($DriverPackage in $DriverPackages){
             #TODO: Update to use Robocopy. Faster and more reliable
             $DriverPackageName = $DriverPackage.DriverPackage
