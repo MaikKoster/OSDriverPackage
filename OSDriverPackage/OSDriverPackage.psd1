@@ -22,7 +22,7 @@
     Description = 'Powershell Module to handle the tooling around Driver Package management'
 
     # Minimum version of the Windows PowerShell engine required by this module
-    PowerShellVersion = '3.0'
+    PowerShellVersion = '4.0'
 
     # Name of the Windows PowerShell host required by this module
     #PowerShellHostName = ''
