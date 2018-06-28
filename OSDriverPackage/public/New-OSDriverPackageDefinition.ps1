@@ -142,6 +142,10 @@ function New-OSDriverPackageDefinition {
             $script:Logger.Debug("Creating OSDrivers section")
             $NewDefinition['OSDrivers'] = [System.Collections.Specialized.OrderedDictionary]@{}
 
+            # every definition must have a unique ID, that is used to properly identify and sync exported Driver Packages
+            $NewDefinition['OSDrivers']['ID'] = [guid]::NewGuid().ToString()
+            $script:Logger.Debug("ID = $($NewDefinition['OSDrivers']['ID'])")
+
             if ($null -ne $Tag) {
                 $NewDefinition['OSDrivers']['Tag'] = $Tag -join ', '
                 $script:Logger.Debug("Tag = $($NewDefinition['OSDrivers']['Tag'])")
@@ -155,7 +159,6 @@ function New-OSDriverPackageDefinition {
             } else {
                 #$NewDefinition['OSDrivers']['Tag'] = ''
             }
-
 
             if ($null -ne $OSVersion) {
                 $NewDefinition['OSDrivers']['OSVersion'] = $OSVersion -join ', '

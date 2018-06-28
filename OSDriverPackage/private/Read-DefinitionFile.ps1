@@ -58,6 +58,19 @@ function Read-DefinitionFile {
         }
 
         if ($Definition.Keys -contains 'OSDrivers') {
+            # Ensure mandatory fields are set
+            $SaveChanges = $false
+            if ($Definition['OSDrivers'].Keys -notcontains 'ID') {
+                $Definition['OSDrivers']['ID'] = [guid]::NewGuid().ToString()
+                $script:Logger.Debug("Driver package definition file is missing 'ID' property. Creating new ID '$($Definition['OSDrivers']['ID'])'.")
+                $SaveChanges = $true
+            }
+
+            if ($SaveChanges) {
+                $script:Logger.Debug("Saving changes to driver package definition.")
+                Write-DefinitionFile -Definition $Definition -Path $Path
+            }
+
             $Definition
         } else {
             $script:Logger.Error("No valid driver package definition file. Missing 'OSDrivers' section in file '$Path'.")
