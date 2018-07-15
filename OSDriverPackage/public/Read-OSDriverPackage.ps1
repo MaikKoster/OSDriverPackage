@@ -62,7 +62,7 @@ function Read-OSDriverPackage {
         }
 
         if ($PassThru.IsPresent){
-            Get-OSDriverPackage -Path $DriverPackage
+            Get-OSDriverPackage -Path $DriverPackage -ReadDrivers
         }
     }
 }

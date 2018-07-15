@@ -127,7 +127,7 @@ function New-OSDriverPackage {
         $DriverPackagePath = Compress-OSDriverPackage -Path $Path -ArchiveType $ArchiveType -Force:($Force.IsPresent) -RemoveFolder:(-Not($KeepFiles.IsPresent)) -Passthru
 
         if ($PassThru.IsPresent) {
-            Get-OSDriverPackage -Path $DriverPackagePath
+            Get-OSDriverPackage -Path $DriverPackagePath -ReadDrivers
         }
     }
 }

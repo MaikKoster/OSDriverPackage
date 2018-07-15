@@ -54,7 +54,13 @@ function Get-OSDriverPackage {
 
         # Specifies if the WQL command specified in the driver package definition file should be
         # executed to identify matching Driver Package(s).
-        [switch]$UseWQL
+        [switch]$UseWQL,
+
+        # Specifies, if the List of drivers should be read.
+        # On default, the "Drivers" property will be $null. If enabled, all Drivers will be read into the
+        # Drivers property, which can take a considerable amount of time. Especially, if the drivers haven't
+        # been processed before.
+        [switch]$ReadDrivers
     )
 
     begin {
@@ -79,7 +85,7 @@ function Get-OSDriverPackage {
                 $Root = Get-Item -Path "$($Root.FullName).zip"
             }
         } elseif ($Root.Extension -eq '.txt'){
-            $script:Logger.Debug('Driver package defition file supplied. Using driver package file name.')
+            $script:Logger.Debug('Driver package definition file supplied. Using driver package file name.')
             if (Test-Path ($Root.FullName -replace '.txt', '.cab')) {
                 $Root = Get-Item ($Root.FullName -replace '.txt', '.cab')
             } elseif (Test-Path ($Root.FullName -replace '.txt', '.zip')) {
@@ -127,7 +133,8 @@ function Get-OSDriverPackage {
                 # Only search for Hardware IDs if Driver Package hasn't been matched yet.
                 if (-Not($IncludeDriverPackage)) {
                     if ($PnPIDs.Count -gt 0) {
-                        # Get list of Driver Package Hardware IDs
+                        # Get list of Driver Package Hardware IDs from the Definition
+                        # Don't use the actual Drivers from the Driver package to allow for customization of filtering.
                         $PkgHardwareIDs = $Definition['PNPIDS']
                         if ($null -ne $PkgHardwareIDs) {
                             $script:Logger.Debug('Searching for Hardware IDs in driver package definition file.')
@@ -177,17 +184,26 @@ function Get-OSDriverPackage {
 
             if ($IncludeDriverPackage) {
                 $script:Logger.Info("Driver package matches the supplied criteria.")
-                # Create Driver Info file if necessary
-                if (-Not(Test-Path $InfoFileName)) {
-                    Read-OSDriverPackage -Path $Root
-                }
 
-                [PSCustomObject]@{
+                $DriverPackage = [PSCustomObject]@{
                     DriverPackage = ($Root.FullName)
                     DefinitionFile = $DefinitionFileName
                     Definition = $Definition
-                    Drivers = (Get-OSDriver -Path $InfoFileName)
+                    Drivers = $null
                 }
+
+                # Reading the drivers is a resource intensive task.
+                # Only include drivers if explicitly requested.
+                if ($ReadDrivers.IsPresent) {
+                    # Create Driver Info file if necessary
+                    if (-Not(Test-Path $InfoFileName)) {
+                        Read-OSDriverPackage -Path $Root
+                    }
+
+                    $DriverPackage.Drivers =  (Get-OSDriver -Path $InfoFileName)
+                }
+
+                $DriverPackage
             } else {
                 $script:Logger.Info("Driver package doesn't match the supplied criteria.")
             }
@@ -203,7 +219,7 @@ function Get-OSDriverPackage {
             if (-Not([string]::IsNullOrEmpty($Name))) {
                 $GetParams.Filter = $Name
             }
-            Get-ChildItem @GetParams| Get-OSDriverPackage
+            Get-ChildItem @GetParams| Get-OSDriverPackage -ReadDrivers:($ReadDrivers.IsPresent)
         }
     }
 
