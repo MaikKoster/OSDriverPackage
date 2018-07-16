@@ -5,17 +5,17 @@ online version:
 schema: 2.0.0
 ---
 
-# Copy-OSDriverPackage
+# New-ExportDefinition
 
 ## SYNOPSIS
-Copies Driver Packages to a different location.
+Creates a new Export Definition
 
 ## SYNTAX
 
 ```
-Copy-OSDriverPackage [-Path] <String> [-Destination] <String> [-Name <String[]>] [-Tag <String[]>]
- [-OSVersion <String[]>] [-Architecture <String[]>] [-Make <String[]>] [-Model <String[]>] [-WhatIf] [-Confirm]
- [<CommonParameters>]
+New-ExportDefinition [-Name] <String> -SourceRoot <String> -TargetRoot <String> [-Description <String>]
+ [-DriverPackageName <String[]>] [-Tag <String[]>] [-OSVersion <String[]>] [-Architecture <String[]>]
+ [-Make <String[]>] [-Model <String[]>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -32,15 +32,13 @@ PS C:\> {{ Add example code here }}
 
 ## PARAMETERS
 
-### -Path
-Specifies the path to the Driver Package.
-If a folder is specified, all Driver Packages within that folder and subfolders
-will be returned, based on the additional conditions
+### -Name
+Specifies the name of the Export definition
 
 ```yaml
 Type: String
 Parameter Sets: (All)
-Aliases: FullName
+Aliases:
 
 Required: True
 Position: 1
@@ -49,8 +47,23 @@ Accept pipeline input: True (ByPropertyName, ByValue)
 Accept wildcard characters: False
 ```
 
-### -Destination
-Specifies the Destination to copy the Driver Packages to
+### -SourceRoot
+Specifies the root of the Driver package source
+
+```yaml
+Type: String
+Parameter Sets: (All)
+Aliases: Path
+
+Required: True
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -TargetRoot
+Specifies the root of the Driver Package export path
 
 ```yaml
 Type: String
@@ -58,15 +71,31 @@ Parameter Sets: (All)
 Aliases:
 
 Required: True
-Position: 2
+Position: Named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Name
+### -Description
+{{Fill Description Description}}
+
+```yaml
+Type: String
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -DriverPackageName
 Filters the Driver Packages by Name
 Wildcards are allowed e.g.
+Intel*
 
 ```yaml
 Type: String[]
@@ -160,37 +189,6 @@ Wildcards are allowed e.g.
 Type: String[]
 Parameter Sets: (All)
 Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -WhatIf
-Shows what would happen if the cmdlet runs.
-The cmdlet is not run.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: (All)
-Aliases: wi
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Confirm
-Prompts you for confirmation before running the cmdlet.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: (All)
-Aliases: cf
 
 Required: False
 Position: Named

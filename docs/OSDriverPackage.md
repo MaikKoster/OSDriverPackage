@@ -33,6 +33,12 @@ Copies Driver Packages to a different location.
 ### [Expand-OSDriverPackage](Expand-OSDriverPackage.md)
 Extracts files from a specified DriverPackage.
 
+### [Export-OSDriverPackage](Export-OSDriverPackage.md)
+Exports Driver Packages
+
+### [Get-ExportDefinition](Get-ExportDefinition.md)
+Returns the Export Definitions
+
 ### [Get-OSDriver](Get-OSDriver.md)
 Returns information about the specified driver.
 
@@ -48,6 +54,9 @@ Gets a Driver Package Definition.
 ### [Get-PnPDevice](Get-PnPDevice.md)
 Returns a list of all registered PnP Devices.
 
+### [New-ExportDefinition](New-ExportDefinition.md)
+Creates a new Export Definition
+
 ### [New-OSDriverPackage](New-OSDriverPackage.md)
 Creates a new Driver Package.
 
@@ -60,7 +69,7 @@ Scans for all drivers in a Driver package and creates info file.
 ### [Remove-OSDriver](Remove-OSDriver.md)
 Removes a Driver file.
 
-### [Search-OSDriverContent](Search-OSDriverContent.md)
-Searches in INF files for a text string
+### [Set-ExportDefinition](Set-ExportDefinition.md)
+Updates the specified Export Definition
 
 
