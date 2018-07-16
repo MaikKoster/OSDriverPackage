@@ -22,7 +22,7 @@ function Get-OSDriverPackageDefinition {
 
     process {
         $script:Logger.Trace("Get driver package definition ('Path':'$Path')")
-        $script:Logger.Info("Get driver package definition from '$Path'.")
+        $script:Logger.Info("Get driver package definition '$Path'.")
 
         Read-DefinitionFile -Path $Path
     }
