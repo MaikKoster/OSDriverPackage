@@ -29,7 +29,7 @@ Function Write-DefinitionFile {
             Remove-Item -Path $Path -Force
         }
 
-        $script:Logger.Debug("Writing supplied definition to'$Path'.")
+        $script:Logger.Debug("Writing supplied definition to '$Path'.")
         $DefinitionFile = New-Object System.IO.StreamWriter $Path
         if ($null -eq $DefinitionFile) {
             $script:Logger.Error("Failed to create driver package definition file '$Path'.")
