@@ -34,26 +34,30 @@ function Compare-Criteria {
             # At least one must apply.
             if (-Not([string]::IsNullOrEmpty($IncludeValue))) {
                 $script:Logger.Trace("Comparing include criteria for '$Include'.")
-                foreach ($Value in $Filter) {
-                    if ($Value -match '\*') {
-                        foreach ($IncValue In $IncludeValue.Split(',').Trim()){
-                            if ($IncValue -like "$Value") {
-                                $script:Logger.Trace("'$IncValue' matches '$Value'.")
+                if ($IncludeValue -eq '*') {
+                    # Include matches everything
+                    $FoundMatch = $true
+                } else {
+                    foreach ($Value in $Filter) {
+                        if ($Value -match '\*') {
+                            foreach ($IncValue In $IncludeValue.Split(',').Trim()){
+                                if ($IncValue -like "$Value") {
+                                    $script:Logger.Trace("'$IncValue' matches '$Value'.")
+                                    $FoundMatch = $true
+                                    Break
+                                }
+                            }
+                        } else {
+                            if ($IncludeValue.Split(',').Trim() -contains $Value){
+                                $script:Logger.Trace("'$IncludeValue' matches '$Value'.")
                                 $FoundMatch = $true
                                 Break
                             }
                         }
-                    } else {
-                        if ($IncludeValue.Split(',').Trim() -contains $Value){
-                            $script:Logger.Trace("'$IncludeValue' matches '$Value'.")
-                            $FoundMatch = $true
-                            Break
-                        }
                     }
                 }
             } else {
-                # Not limited by definition
-                $FoundMatch = $true
+                $FoundMatch = $false
             }
 
             # Validate against Exclude if a match was found.

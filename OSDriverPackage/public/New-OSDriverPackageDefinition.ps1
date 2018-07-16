@@ -30,7 +30,7 @@ function New-OSDriverPackageDefinition {
         # Can be used to e.g. identify specific Core Packages.
         [Parameter(ParameterSetName='NameWithSettings')]
         [Parameter(ParameterSetName='PackageWithSettings')]
-        [string[]]$Tag,
+        [string[]]$Tag = '*',
 
         # Specifies the excluded generic tag(s).
         # Can be used to e.g. identify specific Core Packages.
@@ -42,7 +42,7 @@ function New-OSDriverPackageDefinition {
         # Recommended to use tags as e.g. Win10-x64, Win7-x86.
         [Parameter(ParameterSetName='NameWithSettings')]
         [Parameter(ParameterSetName='PackageWithSettings')]
-        [string[]]$OSVersion,
+        [string[]]$OSVersion = '*',
 
         # Specifies the excluded Operating System version(s).
         # Recommended to use tags as e.g. Win10-x64, Win7-x86.
@@ -54,13 +54,13 @@ function New-OSDriverPackageDefinition {
         # Recommended to use the tags x86, x64 and/or ia64.
         [Parameter(ParameterSetName='NameWithSettings')]
         [Parameter(ParameterSetName='PackageWithSettings')]
-        [string[]]$Architecture,
+        [string[]]$Architecture = '*',
 
         # Specifies the supported Make(s)/Vendor(s)/Manufacture(s).
         # Use values from Manufacturer property from Win32_ComputerSystem.
         [Parameter(ParameterSetName='NameWithSettings')]
         [Parameter(ParameterSetName='PackageWithSettings')]
-        [string[]]$Make,
+        [string[]]$Make = '*',
 
         # Specifies the excluded Make(s)/Vendor(s)/Manufacture(s).
         # Use values from Manufacturer property from Win32_ComputerSystem.
@@ -72,7 +72,7 @@ function New-OSDriverPackageDefinition {
         # Use values from Model property from Win32_ComputerSystem.
         [Parameter(ParameterSetName='NameWithSettings')]
         [Parameter(ParameterSetName='PackageWithSettings')]
-        [string[]]$Model,
+        [string[]]$Model  = '*',
 
         # Specifies the excluded Model(s)
         # Use values from Model property from Win32_ComputerSystem.

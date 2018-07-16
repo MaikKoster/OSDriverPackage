@@ -13,7 +13,7 @@ InModuleScope "$ModuleName" {
             OSVersion = 'Win10'
             Architecture = ''
             Model = 'ModelA, ModelB'
-            Make = ''
+            Make = '*'
             ExcludeMake = 'MakeA'
         }
 
@@ -24,9 +24,13 @@ InModuleScope "$ModuleName" {
 
         It 'Match on empty criteria' {
             Compare-Criteria -Section $Section -Filter '' -Include 'Architecture' | Should Be $true
-            Compare-Criteria -Section $Section -Filter 'x64' -Include 'Architecture' | Should Be $true
             Compare-Criteria -Section $Section -Filter '' -Include 'OSVersion' | Should Be $true
             Compare-Criteria -Section $Section -Include 'OSVersion' | Should Be $true
+        }
+
+        It 'No match on missing include' {
+            Compare-Criteria -Section $Section -Filter 'x64' -Include 'Architecture' | Should Be $false
+            Compare-Criteria -Section $Section -Filter 'TestMake' -Include 'Make' | Should Be $true
         }
 
         It 'Match on include' {
