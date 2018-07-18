@@ -13,11 +13,11 @@ $ModulePath = Join-Path -Path $BuildRoot -ChildPath $ModuleToBuild
 $ModuleFullPath = Join-Path -Path $ModulePath -ChildPath "$ModuleToBuild.psm1"
 $ScratchPath = Join-Path -Path $BuildRoot -ChildPath $ScratchFolder
 $ModuleManifestFullPath = Join-Path -Path $ModulePath -ChildPath "$ModuleToBuild.psd1"
+$ModuleInitializeFullPath = Join-Path -Path $ModulePath -ChildPath "$ModuleToBuild.Initialize.ps1"
 $StageReleasePath = Join-Path -Path $ScratchPath -ChildPath $ModuleToBuild
 $DocumentsPath = Join-Path -Path $BuildRoot -ChildPath $DocumentsFolder
 $ReleaseNotesPath = Join-Path -Path $BuildRoot -ChildPath $ReleaseNotesName
 $LicensePath = Join-Path -Path $BuildRoot -ChildPath $LicenseFileName
-$InitializeFilePath = Join-Path -Path $ModulePath -ChildPath $InitializeFileName
 
 
 # Additional build scripts and tools are found here (note that any dot sourced functions must be scoped at the script level)
@@ -246,6 +246,7 @@ task PrepareStage {
 
     Copy-Item -Path $ModuleFullPath -Destination $ScratchPath
     Copy-Item -Path $ModuleManifestFullPath -Destination $ScratchPath
+    Copy-Item -Path $ModuleInitializeFullPath -Destination $ScratchPath
     Copy-Item -Path "$($ModulePath)\$($PublicFunctionSource)" -Recurse -Destination "$($ScratchPath)\$($PublicFunctionSource)"
     Copy-Item -Path "$($ModulePath)\$($PrivateFunctionSource)" -Recurse -Destination "$($ScratchPath)\$($PrivateFunctionSource)"
     if (Test-Path "$($ModulePath)\$($OtherModuleSource)") {
@@ -286,8 +287,8 @@ task CreateModulePSM1 {
     $PublicPath = Join-Path -Path $ScratchPath -ChildPath $PublicFunctionSource
     if (Test-Path -Path $PublicPath) {
         Write-Output "      Combine public source files from '$PublicPath'"
-        $CombineFiles += "`r`n`r`n#region Public module functions and data `r`n`r`n"
-        Get-childitem  "$PublicPath\*.ps1" | ForEach-Object {
+        $CombineFiles += "`r`n`r`n#region Public module functions and data`r`n`r`n"
+        Get-ChildItem -Path "$PublicPath\*.ps1" | ForEach-Object {
             Write-Output "             $($_.Name)"
             $CombineFiles += (Get-Content $_ -Raw) + "`r`n`r`n"
         }
@@ -298,8 +299,8 @@ task CreateModulePSM1 {
     $OtherPath = Join-Path -Path $ScratchPath -ChildPath $OtherModuleSource
     if (Test-Path -Path $OtherPath) {
         Write-Output "      Combine other source files from '$OtherPath'"
-        $CombineFiles += "`r`n`r`n#region Other Module functions and data `r`n`r`n"
-        Get-Childitem -Path"$OtherPath\*.ps1" | ForEach-Object {
+        $CombineFiles += "`r`n`r`n#region Other Module functions and data`r`n`r`n"
+        Get-ChildItem -Path "$OtherPath\*.ps1" | ForEach-Object {
             Write-Output "             $($_.Name)"
             $CombineFiles += (Get-content $_ -Raw) + "`r`n`r`n"
         }
@@ -310,7 +311,7 @@ task CreateModulePSM1 {
     if (Test-Path -Path $PrivatePath) {
         Write-Output "      Combine private source files from '$PrivatePath'"
         $CombineFiles += "`r`n`r`n#region Private Module functions and data`r`n`r`n"
-        Get-childitem  "$PrivatePath\*.ps1" | ForEach-Object {
+        Get-ChildItem -Path "$PrivatePath\*.ps1" | ForEach-Object {
             Write-Output "             $($_.Name)"
             $CombineFiles += (Get-Content $_ -Raw) + "`r`n`r`n"
         }
@@ -318,10 +319,11 @@ task CreateModulePSM1 {
     }
 
     # Add module initialization code at the end
-    If (Test-Path($InitializeFilePath)) {
+    $InitializePath = Join-Path -Path $ScratchPath -ChildPath "$ModuleToBuild.Initialize.ps1"
+    If (Test-Path($InitializePath)) {
         Write-Output '      Add Initialization'
         $CombineFiles += "`r`n`r`n#region Module Initialization`r`n`r`n"
-        $CombineFiles += (Get-Content -Path "$InitializeFilePath" | ForEach-Object{"$_ `r`n"})
+        $CombineFiles += (Get-Content -Path "$InitializePath" | ForEach-Object{"$_`r`n"})
         $CombineFiles += "#endregion"
     }
 

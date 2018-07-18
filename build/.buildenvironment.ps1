@@ -31,7 +31,3 @@ $ReleaseNotesName = 'CHANGELOG.md'
 
 # Name of the License file
 $LicenseFileName = "LICENSE"
-
-# Name of the script file used to initialize the Module
-# Will be added at the very end
-$InitializeFileName = "PSNLog.Initialize.ps1"
