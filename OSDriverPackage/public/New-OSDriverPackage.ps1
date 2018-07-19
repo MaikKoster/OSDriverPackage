@@ -92,7 +92,7 @@ function New-OSDriverPackage {
     process {
         $script:Logger.Trace("New driver package ('Path':'$Path', 'ArchiveType':'$ArchiveType', 'Tag':'$($Tag -join ',')', 'ExcludeTag':'$($ExcludeTag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'ExcludeOSVersion':'$($ExcludeOSVersion -join ',')', 'Architecture':'$($Architecture -join ',')', 'Make':'$($Make -join ',')', 'ExcludeMake':'$($ExcludeMake -join ',')', 'Model':'$($Model -join ',')', 'ExcludeModel':'$($ExcludeModel -join ',')', 'URL':'$URL', 'SkipPNPDetection':'$SkipPNPDetection', 'IgnoreSubSys':'$IgnoreSubSys', 'Force':'$Force', 'KeepFiles':'$KeepFiles', 'PassThru':'$PassThru'")
 
-        $Path = (Get-Item -Path $Path.Trim("\")).FullName
+        $Path = (Get-Item -Path $Path.TrimEnd('\')).FullName
 
         $script:Logger.Info("Creating new driver package from '$Path'.")
 

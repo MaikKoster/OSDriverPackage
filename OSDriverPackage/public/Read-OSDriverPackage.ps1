@@ -30,7 +30,7 @@ function Read-OSDriverPackage {
         $script:Logger.Trace("Read driver package ('Path':'$Path', 'PassThru':'$PassThru'")
 
         $script:Logger.Info("Reading driver information from driver package '$Path'.")
-        $DriverPackage = Get-Item -Path ($Path.Trim("\"))
+        $DriverPackage = Get-Item -Path ($Path.TrimEnd('\'))
 
         # Temporily expand driver package if necessary
         $Expanded = $false

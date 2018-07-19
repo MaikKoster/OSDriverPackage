@@ -45,8 +45,8 @@ function Compress-Folder {
 
         foreach ($Folder in $Path){
             $ArchiveBaseName = (Get-Item $Folder).Name
-            $DestinationFolder = (Get-Item $Folder).Parent.FullName.Trim("\")
-            $FolderFullName = (Get-Item $Folder).Fullname.Trim("\")
+            $DestinationFolder = (Get-Item $Folder).Parent.FullName.TrimEnd('\')
+            $FolderFullName = (Get-Item $Folder).Fullname.TrimEnd('\')
 
             if ($ArchiveType -eq 'ZIP') {
                 $ArchiveFileName = "$ArchiveBaseName.zip"

@@ -89,7 +89,7 @@ function Get-OSDriverPackage {
         $script:Logger.Trace("Get driver package ('Path':'$Path', 'Name':'$($Name -join ',')', 'Tag':'$($Tag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'Architecture':'$($Architecture -join ',')', 'Make':'$($Make -join ',')', 'Model':'$($Model -join ',')', 'ReadDrivers':'$($ReadDrivers.IsPresent)'  ")
 
         # Generic logic
-        $Root = Get-Item -Path ($Path.Trim("\"))
+        $Root = Get-Item -Path ($Path.TrimEnd('\'))
 
         if ($Root.PSIsContainer) {
             $script:Logger.Debug('Path supplied. Check if there is a driver package definition file with the same name.')

@@ -43,7 +43,7 @@ function Expand-OSDriverPackage {
             $script:Logger.Trace("Expand driver package ('Path':'$Path', 'DestinationPath':'$DestinationPath', 'Force':'$Force', 'RemoveArchive':'$RemoveArchive, 'PassThru':'$PassThru'")
 
             $ArchiveName = (Get-Item $Archive).BaseName
-            $ArchivePath = (Get-Item $Archive).FullName.Trim("\")
+            $ArchivePath = (Get-Item $Archive).FullName.TrimEnd('\')
             if ([string]::IsNullOrEmpty($DestinationPath)) {
                 $ArchiveDestinationPath = Split-Path $ArchivePath -Parent
             }
