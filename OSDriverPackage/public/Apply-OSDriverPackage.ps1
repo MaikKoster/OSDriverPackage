@@ -1,50 +1,35 @@
 function Apply-OSDriverPackage {
     <#
     .SYNOPSIS
-    Applies the specified Driver Package(s) to the current computer.
+    Applies the specified Driver Package(s) to the computer.
 
     .DESCRIPTION
-    The Apply-OSDriverPackage CmdLet expands the content of the specified Driver Package(s) to the current computer.
-
-    .EXAMPLE
-    PS C:\>Apply-OSDriverPackage -Path $DriverPackageSource -DestinationPath 'C:\Drivers'
-
-    Applies all matching Driver Packages to the local computer. Matching methods used are Make, Model,
-    HardwareID, and WQL commands as defined within the Driver Package.
-
-    .EXAMPLE
-    PS C:\>Apply-OSDriverPackage -Path $DriverPackageSource -DestinationPath 'C:\Drivers' -Tag 'Core' -NoMake -NoModel
-
-    Applies all matching Driver Packages to the local computer. Matching methods used are the tag 'Core',
-    HardwareID, and WQL commands as defined within the Driver Package. Make and Model information isn't used.
-
-    .EXAMPLE
-    PS C:\>Apply-OSDriverPackage -Path $DriverPackageSource -DestinationPath 'C:\Drivers' -NoHardwareID -NoWQL
-
-    Applies all matching Driver Packages to the local computer. Matching methods used are Make and Model.
-    HardwareID and WQL commands aren't used.
+    The Apply-OSDriverPackage CmdLet expands the content of the specified Driver Package(s) to the computer.
 
     .NOTES
-    Currently this CmdLet only expands the content of the Driver Package to the specified path. It's primary
-    purpose is to be used as part of the MDT/ConfigMgr OSD deployment.
+    Should be called inside of a Task Sequence.
 
     #>
     [CmdletBinding(SupportsShouldProcess)]
     param (
-        # Specifies the path to the Driver Package.
-        # If a folder is specified, all Driver Packages within that folder and subfolders
-        # will be applied, based on the additional conditions
-        [Parameter(Mandatory, Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        # Specifies the path to the root of the Windows directory.
+        # Must exist and must contain a subfolder 'Windows'.
+        [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({Test-Path $_})]
-        [Alias("FullName")]
-        [string]$Path,
+        [ValidateScript({(Test-Path -Path $_) -and (Test-Path -Path (Join-Path -Path $_ -ChildPath 'Windows'))})]
+        [string]$WindowsRootPath,
 
-        # Specifies the path to which the specified Driver Package(s) should be extracted to.
-        [Parameter(Mandatory, Position=1)]
-        [ValidateNotNullOrEmpty()]
+        # Specifies the path to the Driver Package(s).
+        # On default, the current directory is used.
+        # If a folder is specified, all Driver Packages within that folder and subfolders
+        # will be applied, based on the additional conditions.
+        [Parameter(ValueFromPipeline)]
+        [string]$DriverSourcePath = (Get-Location).Path,
+
+        # Specifies the path to which the specified Driver Package(s) will be extracted to.
+        # On default, '$WindowsRootPath\Drivers' will be used
         [Alias('TargetPath')]
-        [string]$Destination,
+        [string]$DriverTempPath,
 
         # Filters the Driver Packages by Name
         # Wildcards are allowed e.g.
@@ -59,56 +44,70 @@ function Apply-OSDriverPackage {
         # Wildcards are allowed e.g. Win*-x64
         [string[]]$OSVersion,
 
-        # Specifies, if the Make (Manufacturer) information of the current computer should not be
-        # used to select the appropiate driver package. On default, the Manufacturer property of
-        # the Win32_ComputerSystem class of the current computer will be used to filter the
-        # appropriate driver packages.
-        [switch]$NoMake,
+        # Filters the Driver Packages by Architecture
+        # Recommended to use tags as e.g. x64, x86.
+        [string[]]$Architecture,
 
-        # Specifies, if the Model information of the current computer should not be used to select
-        # the appropiate driver package. On default, the Model property of the Win32_ComputerSystem
-        # class of the current computer will be used to filter the appropriate driver packages.
-        [switch]$NoModel,
+        # Specifies, if the Make (Manufacturer) information of the current computer should be
+        # used to select the appropiate driver package.
+        [switch]$UseMake,
 
-        # Specifies if the Hardware IDs of the current computer should not be used to select the
-        # appropriate Driver Packages. On default, All Hardware IDs of the current computer will be
-        # compared against the list of Hardware IDs stored in the driver package definition file.
-        # If they match, the driver package will be applied.
-        [switch]$NoHardwareID,
+        # Specifies, if the Model information of the current computer should  be used to select
+        # the appropiate driver package.
+        [switch]$UseModel,
 
-        # Specifies if the the WQL statements in the driver package definition files should not be
-        # used to select the appropriate driver packages. On default, any existing WQL query will be
-        # executed, and if it returns a result, the driver package will be applied.
-        [switch]$NoWQL
+        # Specifies if the Hardware IDs of the current computer should  be used to select the
+        # appropriate Driver Packages.
+        [switch]$UseHardwareID,
+
+        # Specifies if the the WQL statements in the driver package definition files should be
+        # used to select the appropriate driver packages.
+        [switch]$UseWQL,
+
+        # Specifies if unsigned drivers should be added to an x64 image. It overrides the requirement
+        # that drivers are installed on X64-based computers must have a digital signture.
+        [switch]$EnforceUnsigned,
+
+        # Specifies, if the Driver Packages should only be expanded to the target location.
+        # Can be helpful if multiple Driver Packages in separate steps should be applied, but only be
+        # injected into the image in one operation.
+        [switch]$ExpandOnly
     )
 
-    process {
-        $script:Logger.Trace("Apply driver package ('Path':'$Path', 'Destination':'$Destination', 'Name':'$($Name -join ',')', 'Tag':'$($Tag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'Make':'$($Make -join ',')', 'Model':'$($Model -join ',')'")
+    begin {
+        # Get SCCM/MDT Task Sequence environment
+        $TSEnvironment = Get-TSEnvironment
 
-        # Ensure Target-Path exists
-        if (-Not(Test-Path -Path $Destination)) {
-            $script:Logger.Debug("Create destination path '$Destination'")
-            $null = New-Item -ItemType Directory -Path $Destination -Force
+        # Ensure folder for temporary drivers exists
+        if ([string]::IsNullOrEmpty($DriverTempPath)) {
+            $DriverTempPath = Join-Path -Path $WindowsRootPath -ChildPath 'Drivers'
         }
 
+        if (-Not(Test-Path -Path $DriverTempPath)) {
+            $null = New-Item -Path $DriverTempPath -ItemType Directory -Force
+        }
+    }
+
+    process {
         # Identify properties to search for
         $SearchProps = @{
             Path = $Path
             Name = $Name
             Tag = $Tag
             OSVersion = $Tag
-            UseWQL = (-Not($NoWQL.IsPresent))
+            Architecture = $Architecture
+            UseWQL = $UseWQL.IsPresent
         }
 
         # Get Make/Model information
-        if ((-Not($NoMake.IsPresent)) -or (-Not($NoModel.IsPresent))) {
+        if (($UseMake.IsPresent) -or ($UseModel.IsPresent)) {
             $Computer = Get-CimInstance -ClassName 'Win32_ComputerSystem' -ErrorAction SilentlyContinue
 
             if ($null -ne $Computer) {
-                if (-Not($NoMake.IsPresent)) {
+                if ($UseMake.IsPresent) {
                     $SearchProps['Make'] = $Computer.Manufacturer
                 }
-                if (-Not($NoModel.IsPresent)) {
+                if ($UseModel.IsPresent) {
                     $SearchProps['Model'] = $Computer.Model
                 }
             } else {
@@ -117,12 +116,26 @@ function Apply-OSDriverPackage {
         }
 
         # Get HardwareIDs
-        if (-Not($NoHardwareID.IsPresent)) {
+        if ($UseHardwareID.IsPresent) {
             $SearchProps['HardwareIDs'] = Get-PnPDevice -HardwareIDOnly
         }
 
-        Get-OSDriverPackage @SearchProps | Expand-Archive -DestinationPath $Destination
+        $DriverPackages = Get-OSDriverPackage @SearchProps
 
-        #TODO: Add ability to install the new drivers if running in the "real" OS.
+        foreach ($DriverPackage in $DriverPackages) {
+            $DriverPackageID = $DriverPackage.Definition.OSDrivers.ID
+            if ([string]::IsNullOrEmpty($DriverPackageID)) {
+                $DriverPackageID = [guid]::NewGuid().Guid
+            }
+            $DriverPackageTempPath = Join-Path -Path $DriverTempPath -ChildPath $DriverPackageID
+
+            # Expand content
+            Expand-OSDriverPackage -Path $DriverPackage.DriverPackage -DestinationPath $DriverPackageTempPath -Force
+
+            if (-Not($ExpandOnly.IsPresent)) {
+                # Apply drivers
+                Add-WindowsDriver -Path $WindowsRootPath -Recurse -Driver $DriverTempPath
+            }
+        }
     }
 }
