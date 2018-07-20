@@ -18,6 +18,10 @@ function Compress-OSDriverPackage {
         [Alias("FullName")]
         [string]$Path,
 
+        # Specifies the (new) Name of the Driver Package.
+        # On Default, the name of the folder that contains the Driver Package content will be used.
+        [string]$Name,
+
         # Specifies the type of archive.
         # Possible values are CAB or ZIP
         [ValidateSet('CAB', 'ZIP')]
@@ -34,7 +38,7 @@ function Compress-OSDriverPackage {
     )
 
     process {
-        $script:Logger.Trace("compress driver package ('Path':'$Path', 'ArchiveType':'$ArchiveType', 'Force':'$Force', 'RemoveFolder':'$RemoveFolder', 'Passthru':'$Passthru'")
+        $script:Logger.Trace("compress driver package ('Path':'$Path', 'Name':'$Name', ArchiveType':'$ArchiveType', 'Force':'$Force', 'RemoveFolder':'$RemoveFolder', 'Passthru':'$Passthru'")
         $script:Logger.Info("Compressing driver package '$Path'.")
 
         # CAB only supports <2GB
@@ -46,12 +50,18 @@ function Compress-OSDriverPackage {
             }
         }
 
-        if ((Test-Path "$Path.$ArchiveType") -and (-Not($Force.IsPresent))) {
-            $script:Logger.Error("Archive '$Path.$ArchiveType' exists already and '-Force' is not specified.")
-            throw "Archive '$Path.$ArchiveType' exists already and '-Force' is not specified."
+        if ([string]::IsNullOrEmpty($Name)) {
+            $ArchiveFilename = "$Path.$ArchiveType"
+        } else {
+            $ArchiveFilename = Join-Path -Path (Split-Path -Path $Path -Parent) -ChildPath "$Name.$ArchiveType"
         }
 
-        Compress-Folder -Path $Path -ArchiveType $ArchiveType -HighCompression -PassThru -Verbose:$false
+        if ((Test-Path -Path $ArchiveFilename) -and (-Not($Force.IsPresent))) {
+            $script:Logger.Error("Archive '$ArchiveFilename' exists already and '-Force' is not specified.")
+            throw "Archive '$ArchiveFilename' exists already and '-Force' is not specified."
+        }
+
+        Compress-Folder -Path $Path -Name $Name -ArchiveType $ArchiveType -HighCompression -PassThru -Verbose:$false
 
         if ($RemoveFolder.IsPresent) {
             if ($PSCmdlet.ShouldProcess("Removing folder '$Path'.")) {

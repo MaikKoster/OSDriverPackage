@@ -26,13 +26,17 @@ function New-OSDriverPackage {
         [Alias("FullName")]
         [string]$Path,
 
+        # Specifies the (new) Name of the Driver Package.
+        # On Default, the name of the folder that contains the Driver Package content will be used.
+        [string]$Name,
+
         # Specifies the type of archive.
         # Possible values are CAB or ZIP
         [ValidateSet('CAB', 'ZIP')]
         [string]$ArchiveType = 'ZIP',
 
         # Specifies generic tag(s) that can be used to further identify the Driver Package.
-        [string[]]$Tag,
+        [string[]]$Tag = '*',
 
         # Specifies the excluded generic tag(s).
         # Can be used to e.g. identify specific Core Packages.
@@ -40,7 +44,7 @@ function New-OSDriverPackage {
 
         # Specifies the supported Operating System version(s).
         # Recommended to use tags as e.g. Win10-x64, Win7-x86.
-        [string[]]$OSVersion,
+        [string[]]$OSVersion = '*',
 
         # Specifies the excluded Operating System version(s).
         # Recommended to use tags as e.g. Win10-x64, Win7-x86.
@@ -48,11 +52,11 @@ function New-OSDriverPackage {
 
         # Specifies the supported Architectures.
         # Recommended to use the tags x86, x64 and/or ia64.
-        [string[]]$Architecture,
+        [string[]]$Architecture = '*',
 
         # Specifies the supported Make(s)/Vendor(s)/Manufacture(s).
         # Use values from Manufacturer property from Win32_ComputerSystem.
-        [string[]]$Make,
+        [string[]]$Make = '*',
 
         # Specifies the excluded Make(s)/Vendor(s)/Manufacture(s).
         # Use values from Manufacturer property from Win32_ComputerSystem.
@@ -60,7 +64,7 @@ function New-OSDriverPackage {
 
         # Specifies the supported Model(s)
         # Use values from Model property from Win32_ComputerSystem.
-        [string[]]$Model,
+        [string[]]$Model = '*',
 
         # Specifies the excluded Model(s)
         # Use values from Model property from Win32_ComputerSystem.
@@ -74,10 +78,6 @@ function New-OSDriverPackage {
         # the Definition file.
         [switch]$SkipPNPDetection,
 
-        # Specifies, if Subsystem part of the Hardware ID should be ignored when comparing Drivers
-        # Will be added to the OSDrivers section of the definitino file.
-        [switch]$IgnoreSubSys,
-
         # Specifies if an existing Driver Package should be overwritten.
         [switch]$Force,
 
@@ -90,7 +90,7 @@ function New-OSDriverPackage {
     )
 
     process {
-        $script:Logger.Trace("New driver package ('Path':'$Path', 'ArchiveType':'$ArchiveType', 'Tag':'$($Tag -join ',')', 'ExcludeTag':'$($ExcludeTag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'ExcludeOSVersion':'$($ExcludeOSVersion -join ',')', 'Architecture':'$($Architecture -join ',')', 'Make':'$($Make -join ',')', 'ExcludeMake':'$($ExcludeMake -join ',')', 'Model':'$($Model -join ',')', 'ExcludeModel':'$($ExcludeModel -join ',')', 'URL':'$URL', 'SkipPNPDetection':'$SkipPNPDetection', 'IgnoreSubSys':'$IgnoreSubSys', 'Force':'$Force', 'KeepFiles':'$KeepFiles', 'PassThru':'$PassThru'")
+        $script:Logger.Trace("New driver package ('Path':'$Path', 'Name':'$Name', ArchiveType':'$ArchiveType', 'Tag':'$($Tag -join ',')', 'ExcludeTag':'$($ExcludeTag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'ExcludeOSVersion':'$($ExcludeOSVersion -join ',')', 'Architecture':'$($Architecture -join ',')', 'Make':'$($Make -join ',')', 'ExcludeMake':'$($ExcludeMake -join ',')', 'Model':'$($Model -join ',')', 'ExcludeModel':'$($ExcludeModel -join ',')', 'URL':'$URL', 'SkipPNPDetection':'$SkipPNPDetection', 'Force':'$Force', 'KeepFiles':'$KeepFiles', 'PassThru':'$PassThru'")
 
         $Path = (Get-Item -Path $Path.TrimEnd('\')).FullName
 
@@ -98,7 +98,8 @@ function New-OSDriverPackage {
 
         # Create a Definition file first
         $DefSettings = @{
-            Path = $Path
+            DriverPackagePath = $Path
+            Name = $Name
             Tag = $Tag
             ExcludeTag = $ExcludeTag
             OSVersion = $OSVersion
@@ -109,22 +110,35 @@ function New-OSDriverPackage {
             Model = $Model
             ExcludeMode = $ExcludeModel
             URL = $URL
-            SkipPNPDetection = $SkipPNPDetection
-            IgnoreSubSys = $IgnoreSubSys
+            WQL = $null
+            PNPIDS = $null
         }
 
         if ($Force.IsPresent) { $DefSettings.Force = $true}
-        if ($SkipPNPDetection.IsPresent) { $DefSettings.SkipPNPDetection = $true}
 
         $script:Logger.Info("Creating new driver package info file.")
-        Read-OSDriverPackage -Path $Path
+        $Drivers = Read-OSDriverPackage -Path $Path -Name $Name -Passthru
+        if (-Not($SkipPNPDetection.IsPresent)) {
+            $PNPIDs = @{}
+            $Drivers | Select-Object -ExpandProperty HardwareIDs |
+                Group-Object  -Property HardwareID |
+                ForEach-Object {$_.Group | Select-Object HardwareID, HardwareDescription, Architecture -First 1} |
+                Sort-Object -Property HardwareID | ForEach-Object {
+                    $HardwareID = $_.HardwareID
+                    if (-Not([string]::IsNullOrEmpty($HardwareID))) {
+                        $PNPIDs["$HardwareID"] = $_.HardwareDescription
+                    }
+                }
+
+            $DefSettings.PNPIDs = $PNPIDs
+        }
 
         $script:Logger.Info("Creating new driver package definition file.")
         New-OSDriverPackageDefinition @DefSettings
 
         # Compress files
         $script:Logger.Info("Compressing driver package source content.")
-        $DriverPackagePath = Compress-OSDriverPackage -Path $Path -ArchiveType $ArchiveType -Force:($Force.IsPresent) -RemoveFolder:(-Not($KeepFiles.IsPresent)) -Passthru
+        $DriverPackagePath = Compress-OSDriverPackage -Path $Path -Name $Name -ArchiveType $ArchiveType -Force:($Force.IsPresent) -RemoveFolder:(-Not($KeepFiles.IsPresent)) -Passthru
 
         if ($PassThru.IsPresent) {
             Get-OSDriverPackage -Path $DriverPackagePath -ReadDrivers

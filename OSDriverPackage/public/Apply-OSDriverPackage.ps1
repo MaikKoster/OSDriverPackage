@@ -91,7 +91,7 @@ function Apply-OSDriverPackage {
     process {
         # Identify properties to search for
         $SearchProps = @{
-            Path = $Path
+            Path = $DriverSourcePath
             Name = $Name
             Tag = $Tag
             OSVersion = $Tag

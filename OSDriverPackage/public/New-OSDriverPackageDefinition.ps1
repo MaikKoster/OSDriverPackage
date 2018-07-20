@@ -21,10 +21,11 @@ function New-OSDriverPackageDefinition {
         [string]$DriverPackagePath,
 
         # Specifies the name and path of the Driver Package Definition file
+        [Parameter(ParameterSetName='PackageWithSettings')]
         [Parameter(Mandatory, ParameterSetName='NameWithSettings')]
         [Parameter(Mandatory, ParameterSetName='NameWithDefinition')]
         [ValidateNotNullOrEmpty()]
-        [string]$FileName,
+        [string]$Name,
 
         # Specifies generic tag(s) that can be used to further identify the Driver Package.
         # Can be used to e.g. identify specific Core Packages.
@@ -87,25 +88,18 @@ function New-OSDriverPackageDefinition {
 
         # Specifies a list of WQL commands that can be used to match devices for this Driver Package.
         [Parameter(ParameterSetName='NameWithSettings')]
+        [Parameter(ParameterSetName='PackageWithSettings')]
         [string[]]$WQL,
 
         # Specifies the list PNP IDs from the Driver Package.
         [Parameter(ParameterSetName='NameWithSettings')]
+        [Parameter(ParameterSetName='PackageWithSettings')]
         [hashtable]$PNPIDs,
 
         # Specifies the Driver Package Definition
         [Parameter(Mandatory, ParameterSetName='NameWithDefinition')]
         [ValidateNotNullOrEmpty()]
         [System.Collections.Specialized.OrderedDictionary]$Definition,
-
-        # Specifies, if the PnP IDs shouldn't be added to the Driver Package Definition file.
-        [Parameter(ParameterSetName='PackageWithSettings')]
-        [switch]$SkipPNPDetection,
-
-        # Specifies, if Subsystem part of the Hardware ID should be ignored when comparing Drivers
-        # Will be added to the OSDrivers section of the definitino file.
-        [Parameter(ParameterSetName='PackageWithSettings')]
-        [switch]$IgnoreSubSys,
 
         # Specifies if an existing Driver Package Definition file should be overwritten.
         [switch]$Force,
@@ -116,22 +110,31 @@ function New-OSDriverPackageDefinition {
 
     process {
         if ($PSCmdlet.ParameterSetName -eq 'PackageWithSettings'){
-            $script:Logger.Trace("New driver package definition ('DriverPackagePath':'$DriverPackagePath', Tag':'$($Tag -join ',')', 'ExcludeTag':'$($ExcludeTag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'ExcludeOSVersion':'$($ExcludeOSVersion -join ',')', 'Architecture':'$($Architecture -join ',')', 'Make':'$($Make -join ',')', 'ExcludeMake':'$($ExcludeMake -join ',')', 'Model':'$($Model -join ',')', 'ExcludeModel':'$($ExcludeModel -join ',')', 'URL':'$URL', 'SkipPNPDetection':'$SkipPNPDetection', 'IgnoreSubSys':'$IgnoreSubSys', 'Force':'$Force', 'PassThru':'$PassThru'")
+            $script:Logger.Trace("New driver package definition ('DriverPackagePath':'$DriverPackagePath', 'Name':'$Name', Tag':'$($Tag -join ',')', 'ExcludeTag':'$($ExcludeTag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'ExcludeOSVersion':'$($ExcludeOSVersion -join ',')', 'Architecture':'$($Architecture -join ',')', 'Make':'$($Make -join ',')', 'ExcludeMake':'$($ExcludeMake -join ',')', 'Model':'$($Model -join ',')', 'ExcludeModel':'$($ExcludeModel -join ',')', 'URL':'$URL', 'Force':'$Force', 'PassThru':'$PassThru'")
         } elseif ($PSCmdlet.ParameterSetName -eq 'NameWithSettings') {
-            $script:Logger.Trace("New driver package definition ('FileName':'$FileName', Tag':'$($Tag -join ',')', 'ExcludeTag':'$($ExcludeTag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'ExcludeOSVersion':'$($ExcludeOSVersion -join ',')', 'Architecture':'$($Architecture -join ',')', 'Make':'$($Make -join ',')', 'ExcludeMake':'$($ExcludeMake -join ',')', 'Model':'$($Model -join ',')', 'ExcludeModel':'$($ExcludeModel -join ',')', 'URL':'$URL', 'Force':'$Force', 'PassThru':'$PassThru'")
+            $script:Logger.Trace("New driver package definition ('Name':'$Name', Tag':'$($Tag -join ',')', 'ExcludeTag':'$($ExcludeTag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'ExcludeOSVersion':'$($ExcludeOSVersion -join ',')', 'Architecture':'$($Architecture -join ',')', 'Make':'$($Make -join ',')', 'ExcludeMake':'$($ExcludeMake -join ',')', 'Model':'$($Model -join ',')', 'ExcludeModel':'$($ExcludeModel -join ',')', 'URL':'$URL', 'Force':'$Force', 'PassThru':'$PassThru'")
         } elseif ($PSCmdlet.ParameterSetName -eq 'NameWithDefinition') {
-            $script:Logger.Trace("New driver package definition ('FileName':'$FileName', 'Definition':'$($Definition | ConvertTo-Json)', 'Force':'$Force', 'PassThru':'$PassThru'")
+            $script:Logger.Trace("New driver package definition ('Name':'$Name', 'Definition':'$($Definition | ConvertTo-Json)', 'Force':'$Force', 'PassThru':'$PassThru'")
         }
 
-
-        if ([string]::IsNullOrEmpty($FileName)) {
+        if ([string]::IsNullOrEmpty($DriverPackagePath)) {
+            $FileName = $Name
+        } else {
             $DriverPackage = Get-Item $DriverPackagePath
-            if (($DriverPackage.Extension -eq '.cab') -or ($DriverPackage.Extension -eq '.zip')) {
-                $FileName = "$($DriverPackage.FullName -replace "$($DriverPackage.Extension)", '').txt"
+
+            if ([string]::IsNullOrEmpty($Name)) {
+                if ($DriverPackage.Extension -eq 'txt') {
+                    $FileName = $DriverPackage
+                }elseif (($DriverPackage.Extension -eq '.cab') -or ($DriverPackage.Extension -eq '.zip')) {
+                    $FileName = "$($DriverPackage.FullName -replace "$($DriverPackage.Extension)", '').txt"
+                } else {
+                    $FileName = "$($DriverPackage.FullName).txt"
+                }
             } else {
-                $FileName = "$($DriverPackage.FullName).txt"
+                $FileName = Join-Path -Path ($DriverPackage.Parent.FullName) -ChildPath "$($Name -replace '.txt' ,'') .txt"
             }
         }
+
         $script:Logger.Info("Creating new Driver Package Definition file '$Filename'.")
 
         if ($null -eq $Definition) {
@@ -216,64 +219,24 @@ function New-OSDriverPackageDefinition {
                 #$NewDefinition['OSDrivers']['URL'] = ''
             }
 
-            if ($IgnoreSubSys.IsPresent){
-                $NewDefinition['OSDrivers']['IgnoreSubSys'] = 'Yes'
-                $script:Logger.Debug("IgnoreSubSys = Yes")
+            # WQL
+            if ($null -ne $WQL) {
+                $script:Logger.Debug("Creating WQL section.")
+                $NewDefinition['WQL'] = [System.Collections.Specialized.OrderedDictionary]@{}
+                foreach ($query in $WQL) {
+                    $WQLCount++
+                    $NewDefinition['WQL']["Comment_$WQLCount"] = $query
+                    $script:Logger.Debug("$Query")
+                }
             }
 
-            if ($PSCmdlet.ParameterSetName -eq 'PackageWithSettings') {
-                if ($SkipPNPDetection.IsPresent) {
-                    $script:Logger.Debug("Skipping evluation of Driver files.")
-                } else {
-                    $script:Logger.Debug("Creating WQL and PNPIDS sections.")
-                    # TODO: Check if Folder or cab file. Expand and compress on the fly
-
-                    # Get all Driver infos and put into hashtable
-                    $script:Logger.Debug("Searching for drivers.")
-                    $InfoFilePath = $FileName -replace '.txt', '.json'
-
-                    # Ensure PackageInfo file exists
-                    if (-Not(Test-Path -Path $InfoFilePath)) {
-                        Read-OSDriverPackage -Path $DriverPackagePath
-                    }
-
-                    $NewDefinition['WQL'] = [System.Collections.Specialized.OrderedDictionary]@{}
-                    $NewDefinition['PNPIDS'] = [System.Collections.Specialized.OrderedDictionary]@{}
-                    $Drivers = Get-OSDriver -Path ($InfoFilePath)
-                    $Drivers | Select-Object -ExpandProperty HardwareIDs |
-                        Group-Object  -Property HardwareID |
-                        ForEach-Object {$_.Group | Select-Object HardwareID, HardwareDescription, Architecture -first 1} |
-                        Sort-Object -Property HardwareID | ForEach-Object {
-                            $Count++
-                            $HardwareID = $_.HardwareID
-                            if (-Not([string]::IsNullOrEmpty($HardwareID))) {
-                                $NewDefinition['WQL']["Comment_$Count"] = "Select * FROM Win32_PnPEntity WHERE DeviceID LIKE '$HardwareID'"
-                                $NewDefinition['PNPIDS']["$HardwareID"] = $_.HardwareDescription
-                                $script:Logger.Debug("$HardwareID = $($_.HardwareDescription)")
-                            }
-                        }
-
-                }
-            } else {
-                # WQL
-                if ($null -ne $WQL) {
-                    $script:Logger.Debug("Creating WQL section.")
-                    $NewDefinition['WQL'] = [System.Collections.Specialized.OrderedDictionary]@{}
-                    foreach ($query in $WQL) {
-                        $WQLCount++
-                        $NewDefinition['WQL']["Comment_$WQLCount"] = $query
-                        $script:Logger.Debug("$Query")
-                    }
-                }
-
-                # Plug-And-Play IDs
-                if ($null -ne $PNPIDs) {
-                    $script:Logger.Debug("Creating PNPIDS section.")
-                    $NewDefinition['PNPIDS'] = [System.Collections.Specialized.OrderedDictionary]@{}
-                    foreach ($PNPID in $PNPIDs.Keys) {
-                        $NewDefinition['PNPIDS']["$PNPID"] = $PNPIDs[$PNPID]
-                        $script:Logger.Debug("$PNPID = $($PNPIDs[$PNPID])")
-                    }
+            # Plug-And-Play IDs
+            if ($null -ne $PNPIDs) {
+                $script:Logger.Debug("Creating PNPIDS section.")
+                $NewDefinition['PNPIDS'] = [System.Collections.Specialized.OrderedDictionary]@{}
+                foreach ($PNPID in $PNPIDs.Keys) {
+                    $NewDefinition['PNPIDS']["$PNPID"] = $PNPIDs[$PNPID]
+                    $script:Logger.Debug("$PNPID = $($PNPIDs[$PNPID])")
                 }
             }
         } else {

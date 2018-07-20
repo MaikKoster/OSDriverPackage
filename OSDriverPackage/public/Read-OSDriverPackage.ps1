@@ -22,17 +22,22 @@ function Read-OSDriverPackage {
         [Alias("FullName")]
         [string]$Path,
 
-        # Specifies if the Driver Package should be returned
+        # Specifies the (new) Name of the Driver Package.
+        # Should only be used during initial creation of the Driver Package, where the name of the folder
+        # differs from the name of the Driver Package that shall be created.
+        [string]$Name,
+
+        # Specifies if the Drivers
         [switch]$PassThru
     )
 
     process {
-        $script:Logger.Trace("Read driver package ('Path':'$Path', 'PassThru':'$PassThru'")
+        $script:Logger.Trace("Read driver package ('Path':'$Path', 'Name':'$Name', 'PassThru':'$PassThru'")
 
         $script:Logger.Info("Reading driver information from driver package '$Path'.")
         $DriverPackage = Get-Item -Path ($Path.TrimEnd('\'))
 
-        # Temporily expand driver package if necessary
+        # Temporarily expand driver package if necessary
         $Expanded = $false
         if (($DriverPackage.Extension -eq '.cab') -or ($DriverPackage.Extension -eq '.zip')) {
             if (Test-Path ($DriverPackage.Fullname -replace "$($DriverPackage.Extension)", '')) {
@@ -48,12 +53,17 @@ function Read-OSDriverPackage {
         $Drivers = Get-OSDriverFile -Path $DriverPackage.FullName |
                     Get-OSDriver |
                     ForEach-Object {
-                        $_.DriverFile = ($_.DriverFile -replace [regex]::escape("$($DriverPackage.Fullname)\"), '')
+                        $_.DriverFile = ($_.DriverFile -replace [regex]::Escape("$($DriverPackage.Fullname)\"), '')
                         $_
                     }
 
         $script:Logger.Info("Updating driver package info file")
-        Write-PackageInfoFile -Path "$($DriverPackage.Fullname).json" -Drivers $Drivers
+        if ([string]::IsNullOrEmpty($Name)) {
+            $PackageInfoFilename = "$($DriverPackage.Fullname).json"
+        } else {
+            $PackageInfoFilename = Join-Path -Path ($DriverPackage.Parent.FullName) -ChildPath "$Name.json"
+        }
+        Write-PackageInfoFile -Path "$PackageInfoFilename" -Drivers $Drivers
 
         # Remove temporary content
         if ($Expanded) {
@@ -62,7 +72,7 @@ function Read-OSDriverPackage {
         }
 
         if ($PassThru.IsPresent){
-            Get-OSDriverPackage -Path $DriverPackage -ReadDrivers
+            $Drivers
         }
     }
 }
