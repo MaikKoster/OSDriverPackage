@@ -53,9 +53,20 @@ Function Clean-OSDriverPackage {
         [string]$Architecture = 'All'
     )
 
+    begin {
+        # Ensure drivers are loaded
+        if ($null -eq $CoreDriverPackage.Drivers) {
+            $CoreDriverPackage.Drivers = (Get-OSDriver -Path ($CoreDriverPackage.DriverPackage -replace '.txt', '.json'))
+        }
+    }
+
     process {
         $script:Logger.Trace("Cleanup driver package ('DriverPackage':'$($DriverPackage.DriverPackage)'")
 
+        # Ensure drivers are loaded
+        if ($null -eq $DriverPackage.Drivers) {
+            $DriverPackage.Drivers = (Get-OSDriver -Path ($DriverPackage.DriverPackage -replace '.txt', '.json'))
+        }
         $Pkg = (Get-Item -Path ($DriverPackage.DriverPackage))
         $PkgPath = Join-Path -Path ($Pkg.Directory) -ChildPath ($Pkg.BaseName)
         $ArchiveType = $Pkg.Extension -replace '\.' , ''

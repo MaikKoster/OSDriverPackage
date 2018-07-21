@@ -254,7 +254,7 @@ function Get-OSDriverPackage {
                         Read-OSDriverPackage -Path $Root
                     }
 
-                    $DriverPackage.Drivers =  (Get-OSDriver -Path $InfoFileName)
+                    $DriverPackage.Drivers = (Get-OSDriver -Path $InfoFileName)
                 }
 
                 if (($CreateTSVariables.IsPresent) -and ($null -ne $TSEnvironment)) {

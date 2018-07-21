@@ -59,6 +59,11 @@ Function Compare-OSDriverPackage {
     begin {
         $script:Logger.Trace("Compare driver package ('DriverPackage':'$($DriverPackage | ConvertTo-Json -Depth 1)'")
 
+        # Ensure drivers are loaded
+        if ($null -eq $DriverPackage.Drivers) {
+            $DriverPackage.Drivers = (Get-OSDriver -Path ($DriverPackage.DriverPackage -replace '.txt', '.json'))
+        }
+
         # Get Mappings from Driver Package definitions
         if ($DriverPackage.Definition.Contains('Mappings')){
             foreach ($Mapping in ($DriverPackage.Definition.Mappings.Keys)) {
@@ -100,6 +105,12 @@ Function Compare-OSDriverPackage {
             $script:Logger.Info("Comparing driver package '$($DriverPackage.DriverPackage)' with '$($CorePkg.DriverPackage)'")
 
             $script:Logger.Debug("Core Driver Package : $($CorePkg.DriverPackage)")
+
+            # Ensure drivers are loaded
+            if ($null -eq $CorePkg.Drivers) {
+                $CorePkg.Drivers = (Get-OSDriver -Path ($CorePkg.DriverPackage -replace '.txt', '.json'))
+            }
+
             # Get Mappings from Core Driver Package definitions
             if ($CorePkg.Definition.Contains('Mappings')){
                 foreach ($Mapping in ($CorePkg.Definition.Mappings.Keys)) {
