@@ -11,7 +11,7 @@ function Get-OSDriverPackage {
 
     .NOTES
         A Driver Package is defined by the Driver Package Definition file ({DriverPackageName}.txt). To allow for
-        a performant selection process, only txt files with an 'OSDrivers' section will be treated as valid Driver Packages
+        a performant selection process, only txt files with an 'OSDriverPackage' section will be treated as valid Driver Packages
     #>
     [CmdletBinding()]
     param (
@@ -142,7 +142,7 @@ function Get-OSDriverPackage {
             if ($null -ne $Definition) {
                 $script:Logger.Debug("Evaluating criteria.")
 
-                $Section = $Definition['OSDrivers']
+                $Section = $Definition['OSDriverPackage']
                 if ($null -ne $Section) {
                     if ((Compare-Criteria -Section $Section -Filter $OSVersion -Include 'OSVersion') -and
                        (Compare-Criteria -Section $Section -Filter $Architecture -Include 'Architecture') -and
@@ -259,7 +259,7 @@ function Get-OSDriverPackage {
 
                 if (($CreateTSVariables.IsPresent) -and ($null -ne $TSEnvironment)) {
                     # Create Task Sequence variable to allow dynamic assignment of Driver Package
-                    $DPID = $Definition['OSDrivers']['ID']
+                    $DPID = $Definition['OSDriverPackage']['ID']
                     $script:Logger.Info("Adding Driver Package ID '$ID' to list of Task Sequence variables.")
                     $TSEnvirnment.Value("$DPID") = 'Install'
                 }

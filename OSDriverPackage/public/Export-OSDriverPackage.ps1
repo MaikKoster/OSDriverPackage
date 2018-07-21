@@ -80,7 +80,7 @@ function Export-OSDriverPackage {
             # Copy the Driver Packages to the target location if necessary
             foreach ($DriverPackage in $DriverPackages) {
                 # Define the names and pathes
-                $DriverPackageID = $DriverPackage.Definition.OSDrivers.ID
+                $DriverPackageID = $DriverPackage.Definition.OSDriverPackage.ID
                 $DriverPackageSource = $DriverPackage.DriverPackage
                 $DriverPackageName = Split-Path -Path $DriverPackageSource -Leaf
                 $DriverPackageDestination = Join-Path -Path $PackageDestination -ChildPath $DriverPackageID
@@ -93,7 +93,7 @@ function Export-OSDriverPackage {
                 }
 
                 # Read information about exported packages. Add new driver package if necessary
-                $ExportedPackage = $ExportedPackages | Where-Object {$_.Id -eq ($DriverPackage.Definition.OSDrivers.ID)}
+                $ExportedPackage = $ExportedPackages | Where-Object {$_.Id -eq ($DriverPackage.Definition.OSDriverPackage.ID)}
                 if ($null -eq $ExportedPackage) {
                     $ExportedPackage = [PSCustomObject]@{
                         Name = $DriverPackageName

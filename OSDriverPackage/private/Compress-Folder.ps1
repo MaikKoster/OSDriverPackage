@@ -17,6 +17,10 @@ function Compress-Folder {
         [Alias("FullName")]
         [string[]]$Path,
 
+        # Specifies the name of the archive.
+        # On Default, the name of the folder will be used.
+        [string]$Name,
+
         # Specifies the type of archive.
         # Possible values are CAB or ZIP
         [ValidateSet('CAB', 'ZIP')]
@@ -41,10 +45,14 @@ function Compress-Folder {
     )
 
     process {
-        $script:Logger.Trace("Compress folder ('Path':'$Path', 'ArchiveType':'$ArchiveType', 'HighCompression':'$HighCompression', 'PassThru':'$PassThru', 'ShowMakeCabOutput':'$ShowMakeCabOutput', 'KeepMakeCabFile':'$KeepMakeCabFile', 'RemoveSource':'$RemoveSource')")
+        $script:Logger.Trace("Compress folder ('Path':'$Path', 'Name':'$Name', ArchiveType':'$ArchiveType', 'HighCompression':'$HighCompression', 'PassThru':'$PassThru', 'ShowMakeCabOutput':'$ShowMakeCabOutput', 'KeepMakeCabFile':'$KeepMakeCabFile', 'RemoveSource':'$RemoveSource')")
 
         foreach ($Folder in $Path){
-            $ArchiveBaseName = (Get-Item $Folder).Name
+            if ([string]::IsNullOrEmpty($Name)) {
+                $ArchiveBaseName = (Get-Item $Folder).Name
+            } else {
+                $ArchiveBaseName = $Name
+            }
             $DestinationFolder = (Get-Item $Folder).Parent.FullName.TrimEnd('\')
             $FolderFullName = (Get-Item $Folder).Fullname.TrimEnd('\')
 

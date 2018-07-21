@@ -86,9 +86,9 @@ Function Compare-OSDriverPackage {
 
         if (-not($IgnoreVersion)) {
             # Check if IgnoreVersion is set for the Driver Package
-            if ($DriverPackage.Definition.Contains('OSDrivers')){
-                if ($DriverPackage.Definition.OSDrivers.Contains('IgnoreVersion')){
-                    if (($DriverPackage.Definition.OSDrivers['IgnoreVersion'] -eq 'Yes') -or ($DriverPackage.Definition.OSDrivers['IgnoreVersion'] -eq 'True')) {
+            if ($DriverPackage.Definition.Contains('OSDriverPackage')){
+                if ($DriverPackage.Definition.OSDriverPackage.Contains('IgnoreVersion')){
+                    if (($DriverPackage.Definition.OSDriverPackage['IgnoreVersion'] -eq 'Yes') -or ($DriverPackage.Definition.OSDriverPackage['IgnoreVersion'] -eq 'True')) {
                         $script:Logger.Debug("Driver package is configured to ignore versions.")
                         $IgnoreVersion = $true
                     }
@@ -132,9 +132,9 @@ Function Compare-OSDriverPackage {
             }
 
             # Check if IgnoreVersion is set for the Core Package
-            if ($CorePkg.Definition.Contains('OSDrivers')){
-                if ($CorePkg.Definition.OSDrivers.Contains('IgnoreVersion')){
-                    if (($CorePkg.Definition.OSDrivers['IgnoreVersion'] -eq 'Yes') -or ($CorePkg.Definition.OSDrivers['IgnoreVersion'] -eq 'True')) {
+            if ($CorePkg.Definition.Contains('OSDriverPackage')){
+                if ($CorePkg.Definition.OSDriverPackage.Contains('IgnoreVersion')){
+                    if (($CorePkg.Definition.OSDriverPackage['IgnoreVersion'] -eq 'Yes') -or ($CorePkg.Definition.OSDriverPackage['IgnoreVersion'] -eq 'True')) {
                         $script:Logger.Debug("Core Driver package is configured to ignore versions.")
                         $IgnoreCoreVersion = $true
                     }

@@ -22,13 +22,13 @@ function Read-DefinitionFile {
     process {
         $script:Logger.Trace("Read driver package definition file ('Path':'$Path')")
 
-        # First line must be [OSDrivers]!!!
+        # First line must be [OSDriverPackage]!!!
         try {
             $FirstLine = Get-Content -Path $Path -First 1 -ErrorAction SilentlyContinue
         } catch {}
 
-        if ([string]::IsNullOrEmpty($FirstLine) -or ($Firstline -ne "[OSDrivers]")) {
-            $script:Logger.Error("No valid driver package definition file. Missing 'OSDrivers' section in file '$Path'.")
+        if ([string]::IsNullOrEmpty($FirstLine) -or ($Firstline -ne "[OSDriverPackage]")) {
+            $script:Logger.Error("No valid driver package definition file. Missing 'OSDriverPackage' section in file '$Path'.")
 
         } else {
 
@@ -69,12 +69,12 @@ function Read-DefinitionFile {
                 }
             }
 
-            if ($Definition.Keys -contains 'OSDrivers') {
+            if ($Definition.Keys -contains 'OSDriverPackage') {
                 # Ensure mandatory fields are set
                 $SaveChanges = $false
-                if ($Definition['OSDrivers'].Keys -notcontains 'ID') {
-                    $Definition['OSDrivers']['ID'] = [guid]::NewGuid().ToString()
-                    $script:Logger.Debug("Driver package definition file is missing 'ID' property. Creating new ID '$($Definition['OSDrivers']['ID'])'.")
+                if ($Definition['OSDriverPackage'].Keys -notcontains 'ID') {
+                    $Definition['OSDriverPackage']['ID'] = [guid]::NewGuid().ToString()
+                    $script:Logger.Debug("Driver package definition file is missing 'ID' property. Creating new ID '$($Definition['OSDriverPackage']['ID'])'.")
                     $SaveChanges = $true
                 }
 
@@ -85,7 +85,7 @@ function Read-DefinitionFile {
 
                 $Definition
             } else {
-                $script:Logger.Error("No valid driver package definition file. Missing 'OSDrivers' section in file '$Path'.")
+                $script:Logger.Error("No valid driver package definition file. Missing 'OSDriverPackage' section in file '$Path'.")
             }
         }
     }

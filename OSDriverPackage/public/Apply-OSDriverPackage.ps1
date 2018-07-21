@@ -123,7 +123,7 @@ function Apply-OSDriverPackage {
         $DriverPackages = Get-OSDriverPackage @SearchProps
 
         foreach ($DriverPackage in $DriverPackages) {
-            $DriverPackageID = $DriverPackage.Definition.OSDrivers.ID
+            $DriverPackageID = $DriverPackage.Definition.OSDriverPackage.ID
             if ([string]::IsNullOrEmpty($DriverPackageID)) {
                 $DriverPackageID = [guid]::NewGuid().Guid
             }
