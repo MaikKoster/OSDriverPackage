@@ -113,7 +113,7 @@ function New-OSDriverPackageDefinition {
                     $FileName = "$($DriverPackage.FullName).txt"
                 }
             } else {
-                $FileName = Join-Path -Path ($DriverPackage.Parent.FullName) -ChildPath "$($Name -replace '.txt' ,'') .txt"
+                $FileName = Join-Path -Path ($DriverPackage.Parent.FullName) -ChildPath "$($Name -replace '.txt' ,'').txt"
             }
         }
 

@@ -16,6 +16,7 @@ Function Compare-OSDriver {
         Replace: will be set to $true, if the Driver can be safely replaced by the Core Driver. $False if not.
         LowerVersion: will be set to $true, if the Core Driver has a higher version. $false, if not.
         MissingHardwareIDs: List of Hardware IDs, that are not referenced by the Core Driver.
+
     #>
 
     [CmdletBinding()]
@@ -114,105 +115,104 @@ Function Compare-OSDriver {
                     $DriverVersion = New-Object System.Version ($Driver.Version)
                     $script:Logger.Debug("Drv Version : $DriverVersion")
 
-                    if ($DriverVersion.CompareTo($CoreVersion) -le 0) {
-                        $script:Logger.Debug('Core driver has an equal or higher version.')
-                        $Replace = $true
-                        $Version = $true
-                    } elseif ($IgnoreVersion.IsPresent) {
-                        $script:Logger.Debug('Core driver has a lower version. Continue with PnP check as version check was set to be ignored.')
-                        $Replace = $true
-                        $Version = $false
-                    } else {
-                        $script:Logger.Debug('Core driver has a lower version. Keep driver.')
-                        $Version = $false
+                    # Compare Hardware IDs
+                    # Every PnP ID from the Package Driver should be supported by the Core Driver.
+                    # Outdated HardwareID can be handled using IgnoreIDs.
+                    $Replace = $true
+                    $MissingHardwareIDs = @{}
+                    $Driver.HardwareIDs | ForEach-Object {
+                        $HardwareID = $_.HardwareID
+                        if ([string]::IsNullOrEmpty($HardwareID)) {
+                            $script:Logger.Warn("Empty HardwareID: $_")
+                        } else {
+                            $HardwareIDFound = $false
+                            # Make sure we check the appropriate architecture as well
+                            if ((($_.Architecture -eq 'x64') -and (-Not($CorePNPIDSx64.ContainsKey($HardwareID)))) -or (($_.Architecture -eq 'x86') -and(-Not($CorePNPIDSx86.ContainsKey($HardwareID))))) {
+                                if ($CriticalPnPIDs.Count -gt 0){
+                                    if ($CriticalPnPIDs.ContainsKey($HardwareID)) {
+                                        $script:Logger.Debug("HardwareID '$HardwareID' is not supported by core driver and defined as critical. Keep Driver.")
+                                        $Replace = $false
+                                    } else {
+                                        $script:Logger.Debug("HardwareID '$HardwareID' is not supported by core driver but is defined as non-critical.")
+                                    }
+                                } elseif  (($IgnorePnPIDs.ContainsKey($HardwareID)) -and (($CriticalPnPIDs.Count -eq 0) -or (-not($CriticalPnPIDs.ContainsKey($HardwareID))))) {
+                                    $script:Logger.Debug("HardwareID '$HardwareID' is not supported by core driver but is defined as non-critical.")
+                                } else {
+                                    # Get compatible Hardware IDs
+                                    $CompatibleIDs = Get-CompatibleID -HardwareID $HardwareID
+
+                                    foreach ($CompatibleID In $CompatibleIDs) {
+                                        if ((($_.Architecture -eq 'x64') -and ($CorePNPIDSx64.ContainsKey($CompatibleID))) -or (($_.Architecture -eq 'x86') -and($CorePNPIDSx86.ContainsKey($CompatibleID)))) {
+                                            $script:Logger.Debug("HardwareID '$HardwareId' is supported by compatible HardwareID '$CompatibleID'.")
+                                            $HardwareIDFound = $true
+                                            break
+                                        }
+                                    }
+
+                                    if (-Not($HardwareIDFound)) {
+                                        $script:Logger.Debug("HardwareID '$HardwareID' is not supported by core driver. Keep driver.")
+                                        $Replace = $false
+                                    }
+                                }
+                            } else {
+                                $script:Logger.Debug("HardwareID '$HardwareID' is supported by core driver.")
+                                $HardwareIDFound = $true
+                            }
+
+                            if ($null -eq $Driver.MissingHardwareIDs) {
+                                if (-Not($HardwareIDFound)) {
+                                    $MissingHardwareIDs[$_] = $_.HardwareDescription
+                                }
+                            } else {
+                                # Driver had been processed before.
+                                # Don't add new missing hardware IDs, as all missing ones should be identified already.
+                                # Remove missing hardware IDs if possible.
+                                if ($HardwareIDFound) {
+
+                                    #$Remove = $Driver.MissingHardwareIDs | Where-Object {$_.HardwareID -eq $}
+                                    if ($Driver.MissingHardwareIDs -contains $_) {
+                                        $script:Logger.Debug("Removing '$HardwareID' from list of missing hardware IDs.")
+                                        $Driver.MissingHardwareIDs.Remove($_)
+                                    }
+                                }
+                            }
+                        }
                     }
 
-                    # Always compare the Hardware IDs as well.
-                    # This is to cover older hardware no longer supported by the newer version but still supported in some other core package
-                    #if ($Replace){
-                        # Compare Hardware IDs
-                        # Every PnP ID from the Package Driver should be supported by the Core Driver.
-                        # Outdated HardwareID can be handled using IgnoreIDs.
-                        $MissingHardwareIDs = @{}
-                        $Driver.HardwareIDs | ForEach-Object {
-                            $HardwareID = $_.HardwareID
-                            if ([string]::IsNullOrEmpty($HardwareID)) {
-                                $script:Logger.Warn("Empty HardwareID: $_")
-                            } else {
-                                $HardwareIDFound = $false
-                                # Make sure we check the appropriate architecture as well
-                                if ((($_.Architecture -eq 'x64') -and (-Not($CorePNPIDSx64.ContainsKey($HardwareID)))) -or (($_.Architecture -eq 'x86') -and(-Not($CorePNPIDSx86.ContainsKey($HardwareID))))) {
-                                    if ($CriticalPnPIDs.Count -gt 0){
-                                        if ($CriticalPnPIDs.ContainsKey($HardwareID)) {
-                                            $script:Logger.Debug("HardwareID '$HardwareID' is not supported by core driver and defined as critical. Keep Driver.")
-                                            $Replace = $false
-                                        } else {
-                                            $script:Logger.Debug("HardwareID '$HardwareID' is not supported by core driver but is defined as non-critical.")
-                                        }
-                                    } elseif  (($IgnorePnPIDs.ContainsKey($HardwareID)) -and (($CriticalPnPIDs.Count -eq 0) -or (-not($CriticalPnPIDs.ContainsKey($HardwareID))))) {
-                                        $script:Logger.Debug("HardwareID '$HardwareID' is not supported by core driver but is defined as non-critical.")
-                                    } else {
-                                        # Get compatible Hardware IDs
-                                        $CompatibleIDs = Get-CompatibleID -HardwareID $HardwareID
-
-                                        foreach ($CompatibleID In $CompatibleIDs) {
-                                            if ((($_.Architecture -eq 'x64') -and ($CorePNPIDSx64.ContainsKey($CompatibleID))) -or (($_.Architecture -eq 'x86') -and($CorePNPIDSx86.ContainsKey($CompatibleID)))) {
-                                                $script:Logger.Debug("HardwareID '$HardwareId' is supported by compatible HardwareID '$CompatibleID'.")
-                                                $HardwareIDFound = $true
-                                                break
-                                            }
-                                        }
-
-                                        if (-Not($HardwareIDFound)) {
-                                            $script:Logger.Debug("HardwareID '$HardwareID' is not supported by core driver. Keep driver.")
-                                            $Replace = $false
-                                        }
-                                    }
-                                } else {
-                                    $script:Logger.Debug("HardwareID '$HardwareID' is supported by core driver.")
-                                    $HardwareIDFound = $true
-                                }
-
-                                if ($null -eq $Driver.MissingHardwareIDs) {
-                                    if (-Not($HardwareIDFound)) {
-                                        $MissingHardwareIDs[$_] = $_.HardwareDescription
-                                    }
-                                } else {
-                                    # Driver had been processed before.
-                                    # Don't add new missing hardware IDs, as all missing ones should be identified already.
-                                    # Remove missing hardware IDs if possible.
-                                    if ($HardwareIDFound) {
-
-                                        #$Remove = $Driver.MissingHardwareIDs | Where-Object {$_.HardwareID -eq $}
-                                        if ($Driver.MissingHardwareIDs -contains $_) {
-                                            $script:Logger.Debug("Removing '$HardwareID' from list of missing hardware IDs.")
-                                            $Driver.MissingHardwareIDs.Remove($_)
-                                        }
-                                    }
-                                }
-
-                            }
-                        }
-
-                        if ($Replace) {
-                            if ($CriticalPnPIDs.Count -eq 0) {
-                                $script:Logger.Debug("Core driver supports all hardware IDs of the driver.")
-                            } else {
-                                $script:Logger.Debug("Core driver supports all critical Hardware IDs of the driver.")
-                            }
+                    if ($Replace) {
+                        if ($CriticalPnPIDs.Count -eq 0) {
+                            $script:Logger.Debug("Core driver supports all hardware IDs of the driver.")
                         } else {
-                            if ($null -ne $Driver.MissingHardwareIDs) {
-                                if ($Driver.MissingHardwareIDs.Count -eq 0) {
-                                    # All hardwareIDs are covered by some drivers from the Core package(s)
-                                    $Replace = $true
-                                    $script:Logger.Debug("Core driver(s) support all hardware IDs of the driver.")
-                                }
+                            $script:Logger.Debug("Core driver supports all critical Hardware IDs of the driver.")
+                        }
+                    } else {
+                        if ($null -ne $Driver.MissingHardwareIDs) {
+                            if ($Driver.MissingHardwareIDs.Count -eq 0) {
+                                # All hardwareIDs are covered by some drivers from the Core package(s)
+                                $Replace = $true
+                                $script:Logger.Debug("Core driver(s) support all hardware IDs of the driver.")
                             }
                         }
-                    #}
+                    }
 
                     # Remove duplicates
                     $MissingHardwareIDs = $MissingHardwareIDs | Group-Object -Property HardwareID, Architecture | ForEach-Object {$_.Group | Select-Object -First 1} | Sort-Object HardwareID
+
+                    if ($DriverVersion.CompareTo($CoreVersion) -le 0) {
+                        $script:Logger.Debug('Core driver has an equal or higher version.')
+                        $Version = $true
+                    } elseif ($IgnoreVersion.IsPresent) {
+                        if ($Replace) {
+                            $script:Logger.Debug('Core driver has a lower version, but version check was set to be ignored.')
+                        } else {
+                            $script:Logger.Debug('Core driver has a lower version.')
+                        }
+                        $Version = $false
+                    } else {
+                        $script:Logger.Debug('Core driver has a lower version. Keep driver.')
+                        $Replace = $false
+                        $Version = $false
+                    }
 
                     # Adjust output in pipeline
                     if ($PassThru.IsPresent) {
@@ -229,13 +229,11 @@ Function Compare-OSDriver {
                         }
 
                         if ([bool]($Driver.PSobject.Properties.Name -match "MissingHardwareIDs")) {
-                            #$Driver.MissingHardwareIDs = ($MissingHardwareIDs.Keys)
+                            #$Driver.MissingHardwareIDs = ([System.Collections.ArrayList]($MissingHardwareIDs.Keys))
                         } else {
                             $Driver | Add-Member -NotePropertyName 'MissingHardwareIDs' -NotePropertyValue  ([System.Collections.ArrayList]($MissingHardwareIDs.Keys))
                         }
 
-                        # Don't drop Driver back to pipeline. The original object should have been updated.
-                        # $Driver
                     } else {
                         $Replace
                     }

@@ -243,7 +243,7 @@ function Get-OSDriverPackage {
                     DriverPackage = $DriverPackageFilename
                     DefinitionFile = $DefinitionFileName
                     Definition = $Definition
-                    Drivers = $null
+                    Drivers = @()
                 }
 
                 # Reading the drivers is a resource intensive task.
@@ -254,7 +254,14 @@ function Get-OSDriverPackage {
                         Read-OSDriverPackage -Path $Root
                     }
 
-                    $DriverPackage.Drivers = (Get-OSDriver -Path $InfoFileName)
+
+                    # Need to properly handle the automated unboxing of PowerShell
+                     $Drivers = Get-OSDriver -Path $InfoFileName
+                     if ($Drivers.Count -eq 1) {
+                         $DriverPackage.Drivers = ,$Drivers
+                     } else {
+                         $DriverPackage.Drivers = $Drivers
+                     }
                 }
 
                 if (($CreateTSVariables.IsPresent) -and ($null -ne $TSEnvironment)) {

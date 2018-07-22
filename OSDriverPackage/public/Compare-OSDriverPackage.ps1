@@ -61,7 +61,12 @@ Function Compare-OSDriverPackage {
 
         # Ensure drivers are loaded
         if ($null -eq $DriverPackage.Drivers) {
-            $DriverPackage.Drivers = (Get-OSDriver -Path ($DriverPackage.DriverPackage -replace '.txt', '.json'))
+            $Drivers = Get-OSDriver -Path ($DriverPackage.DriverPackage -replace '.cab|.zip|.txt', '.json')
+            if ($Drivers.Count -eq 1) {
+                $DriverPackage.Drivers = ,$Drivers
+            } else {
+                $DriverPackage.Drivers = $Drivers
+            }
         }
 
         # Get Mappings from Driver Package definitions
@@ -108,7 +113,12 @@ Function Compare-OSDriverPackage {
 
             # Ensure drivers are loaded
             if ($null -eq $CorePkg.Drivers) {
-                $CorePkg.Drivers = (Get-OSDriver -Path ($CorePkg.DriverPackage -replace '.txt', '.json'))
+                $Drivers = Get-OSDriver -Path ($CorePkg.DriverPackage -replace '.cab|.zip|.txt', '.json')
+                if ($Drivers.Count -eq 1) {
+                    $CorePkg.Drivers = ,$Drivers
+                } else {
+                    $CorePkg.Drivers = $Drivers
+                }
             }
 
             # Get Mappings from Core Driver Package definitions
@@ -142,9 +152,9 @@ Function Compare-OSDriverPackage {
             }
 
             if ($Architecture -ne 'All') {
-                $PkgDrivers = $DriverPackage.Drivers | Where-Object {((($_.HardwareIDs | Group-Object -Property 'Architecture' | Where-Object {$_.Name -eq "$Architecture"}).Count -gt 0) -and (-Not($_.Replace)))}
+                $PkgDrivers = @($DriverPackage.Drivers | Where-Object {((($_.HardwareIDs | Group-Object -Property 'Architecture' | Where-Object {$_.Name -eq "$Architecture"}).Count -gt 0) -and (-Not($_.Replace)))})
             } else {
-                $PkgDrivers = $DriverPackage.Drivers | Where-Object {-Not($_.Replace)}
+                $PkgDrivers = @($DriverPackage.Drivers | Where-Object {-Not($_.Replace)})
             }
 
             foreach ($Driver in $PkgDrivers) {
@@ -214,7 +224,7 @@ Function Compare-OSDriverPackage {
 
     end {
         # Return list of Result objects. Original DriverPackage will be updated as well.
-        $Result = $DriverPackage.Drivers | Where-Object {$null -ne $_.Replace}
+        $Result = $DriverPackage.Drivers | Where-Object {$_.Replace}
         if ($Result.Count -gt 0) {
             $script:Logger.Info("Found $($Result.Count) drivers that can be removed.")
         } else {

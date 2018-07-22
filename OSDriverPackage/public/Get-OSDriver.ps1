@@ -8,7 +8,7 @@ function Get-OSDriver {
 
     #>
     [CmdletBinding()]
-    [OutputType([PSCustomObject])]
+    [OutputType([array])]
     param (
         # Specifies the name and path for the driver file
         [Parameter(Mandatory, Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
@@ -30,7 +30,12 @@ function Get-OSDriver {
             #TODO: Get-WindowsDriver requires elevation! Might need to be replaced. Not sure if it's worth the effort
             # Get Windows Drivers info using Dism.
             # Extract relevant information only to save space.
-            $DriverInfo = Get-WindowsDriver -Online -Driver $Path
+            try {
+                $DriverInfo = Get-WindowsDriver -Online -Driver $Path
+            } catch {
+                $script:Logger.Error("Exception while calling 'Get-WindowsDriver -Online -Driver ""$Path""")
+                $script:Logger.Error("$($_.ToString())")
+            }
             if ($null -ne $DriverInfo) {
                 $First = $DriverInfo | Select-Object -First 1
 
@@ -67,7 +72,7 @@ function Get-OSDriver {
             }
         } elseif ($Driver.Extension -eq '.json') {
             $script:Logger.Info("Get windows driver info from '$Path'")
-            Read-PackageInfoFile -Path ($Driver.FullName)
+            , (Read-PackageInfoFile -Path ($Driver.FullName))
         }
     }
 }

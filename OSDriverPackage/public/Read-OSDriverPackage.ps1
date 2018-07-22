@@ -50,12 +50,12 @@ function Read-OSDriverPackage {
         }
 
         # Get all drivers. Strip of Driver Package Path so Driver path is relative to the package.
-        $Drivers = Get-OSDriverFile -Path $DriverPackage.FullName |
+        $Drivers = @(Get-OSDriverFile -Path $DriverPackage.FullName |
                     Get-OSDriver |
                     ForEach-Object {
                         $_.DriverFile = ($_.DriverFile -replace [regex]::Escape("$($DriverPackage.Fullname)\"), '')
                         $_
-                    }
+                    })
 
         $script:Logger.Info("Updating driver package info file")
         if ([string]::IsNullOrEmpty($Name)) {

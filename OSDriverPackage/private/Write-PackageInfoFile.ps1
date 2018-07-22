@@ -35,6 +35,6 @@ Function Write-PackageInfoFile {
             Remove-Item -Path $Path -Force
         }
         $script:Logger.Debug("Writing $($Drivers.Count) drivers to '$Path'.")
-        $Drivers | ConvertTo-Json -Depth 4 | Set-Content -Path $Path
+        ConvertTo-Json -Depth 4 -InputObject $Drivers | Set-Content -Path $Path
     }
 }
