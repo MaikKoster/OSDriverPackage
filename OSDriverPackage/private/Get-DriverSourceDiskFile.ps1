@@ -50,7 +50,7 @@ function Get-DriverSourceDiskFile {
                 if ($Section -eq 'Version' ) {
                     # Get catalog file
                     if ($Matches[1] -like 'CatalogFile*') {
-                        $SourceDiskFiles += $Matches[2] -replace ';(.+)' ,''
+                        $SourceDiskFiles += ($Matches[2] -replace ';(.+)' ,'').Trim()
                         $script:Logger.Trace("Catalog file found: '$($Matches[2])'.")
                     }
                 } elseif ($Section -eq 'Strings') {
@@ -160,8 +160,11 @@ function Get-DriverSourceDiskFile {
                 }
 
                 if (-Not([string]::IsNullOrEmpty($Subfolder))) {
-                    $Filepath = (("$FilePath\$Subfolder") -replace '"','').Trim('\')
+                    $Filepath = (("$FilePath\$Subfolder") -replace '"','').Trim('\').Trim()
                 }
+
+                # Trim whitespaces from Name
+                $File = $File.Trim()
 
                 if ([string]::IsNullOrEmpty($Filepath)) {
                     $SourceDiskFiles += $File
