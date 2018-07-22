@@ -23,7 +23,7 @@ function Get-FolderSize {
         $script:Logger.Trace("Get folder size ('Path':'$Path')")
 
         try {
-            $script:Logger.Debug("Processing folder '$Path'.")
+            $script:Logger.Debug("Get folder size for '$Path'.")
 
             robocopy /l /nfl /ndl /njh $Path "$($Env:Temp)\VUVWXYZ" /e /bytes |
                 Where-Object { $_ -match "^[ \t]+(Dirs|Files|Bytes) :[ ]+\d" } |

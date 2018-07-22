@@ -53,40 +53,42 @@ function Remove-OSDriver {
                 }
             }
 
-            # Assuming that all drivers are being installed via inf files, we
-            # remove all additional files if no driver is left in the folder.
-            # Sometimes not all files are referenced in the inf and some stuff is left.
-            # We can't take care about subfolder though.
-            if ((Get-ChildItem -Path $ParentPath -Filter '*.inf').Count -eq 0) {
-                $script:Logger.Debug("Removing leftover files in '$ParentPath'.")
-                # Also clean up subfolders, if there are no inf files present
-                if ((Get-ChildItem -Path $ParentPath -Filter '*.inf' -Recurse).Count -eq 0) {
-                    Get-ChildItem -Path $ParentPath | Remove-Item -Force -Recurse
-                } else {
-                    Get-ChildItem -Path $ParentPath -File | Remove-Item -Force
-                }
-            }
+            # This is now handled as an additional switch in Cleanup-OSDriverPackage
+            # Keeping logic until other method has been properly tested.
+                # # Assuming that all drivers are being installed via inf files, we
+                # # remove all additional files if no driver is left in the folder.
+                # # Sometimes not all files are referenced in the inf and some stuff is left.
+                # # We can't take care about subfolder though.
+                # if ((Get-ChildItem -Path $ParentPath -Filter '*.inf').Count -eq 0) {
+                #     $script:Logger.Debug("Removing leftover files in '$ParentPath'.")
+                #     # Also clean up subfolders, if there are no inf files present
+                #     if ((Get-ChildItem -Path $ParentPath -Filter '*.inf' -Recurse).Count -eq 0) {
+                #         Get-ChildItem -Path $ParentPath | Remove-Item -Force -Recurse
+                #     } else {
+                #         Get-ChildItem -Path $ParentPath -File | Remove-Item -Force
+                #     }
+                # }
 
-            # Remove the folder if there aren't any files left
-            if ((Get-ChildItem -Path $ParentPath -Recurse).Count -eq 0) {
-                $GrandParent = (Get-Item $ParentPath).Parent.FullName
-                if ($PSCmdlet.ShouldProcess("Removing empty folder '$ParentPath'.")) {
-                    $script:Logger.Debug("Removing empty folder '$ParentPath'.")
-                    Remove-Item -Path $ParentPath -Force
-                }
+                # # Remove the folder if there aren't any files left
+                # if ((Get-ChildItem -Path $ParentPath -Recurse).Count -eq 0) {
+                #     $GrandParent = (Get-Item $ParentPath).Parent.FullName
+                #     if ($PSCmdlet.ShouldProcess("Removing empty folder '$ParentPath'.")) {
+                #         $script:Logger.Debug("Removing empty folder '$ParentPath'.")
+                #         Remove-Item -Path $ParentPath -Force
+                #     }
 
-                # Try to clean up next level parent folder
-                # Assumption: if there are no inf or cab files in the parent or any subfolders,
-                # it's safe to remove as well.
-                # TODO: Validate if we are not removing needed files
-                # TODO: Create recursive function if another level seems necessary
-                if ((Get-ChildItem -Path $GrandParent -include '*.inf', '*.cab', '*.zip' -Recurse).Count -eq 0) {
-                    if ($PSCmdlet.ShouldProcess("Removing folder '$GrandParent'.")) {
-                        $script:Logger.Debug("Removing folder '$GrandParent'.")
-                        Remove-Item -Path $GrandParent -Force -Recurse
-                    }
-                }
-            }
+                #     # Try to clean up next level parent folder
+                #     # Assumption: if there are no inf or cab files in the parent or any subfolders,
+                #     # it's safe to remove as well.
+                #     # TODO: Validate if we are not removing needed files
+                #     # TODO: Create recursive function if another level seems necessary
+                #     if ((Get-ChildItem -Path $GrandParent -include '*.inf', '*.cab', '*.zip' -Recurse).Count -eq 0) {
+                #         if ($PSCmdlet.ShouldProcess("Removing folder '$GrandParent'.")) {
+                #             $script:Logger.Debug("Removing folder '$GrandParent'.")
+                #             Remove-Item -Path $GrandParent -Force -Recurse
+                #         }
+                #     }
+                # }
         }
     }
 }
