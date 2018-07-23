@@ -37,8 +37,19 @@ function Read-OSDriverPackage {
         $script:Logger.Info("Reading driver information from driver package '$Path'.")
         $DriverPackage = Get-Item -Path ($Path.TrimEnd('\'))
 
-        # Temporarily expand driver package if necessary
+
         $Expanded = $false
+        if ($DriverPackage.Extension -eq '.txt') {
+            if (Test-Path -Path ($DriverPackage.FullName -replace '.txt', '.zip')) {
+                $DriverPackage = Get-Item -Path ($DriverPackage.FullName -replace '.txt', '.zip')
+            } elseif (Test-Path -Path ($DriverPackage.FullName -replace '.txt', '.cab')) {
+                $DriverPackage = Get-Item -Path ($DriverPackage.FullName -replace '.txt', '.cab')
+            } elseif  (Test-Path -Path ($DriverPackage.FullName -replace '.txt', '')) {
+                $DriverPackage = Get-Item -Path ($DriverPackage.FullName -replace '.txt', '')
+            }
+        }
+
+        # Temporarily expand driver package if necessary
         if (($DriverPackage.Extension -eq '.cab') -or ($DriverPackage.Extension -eq '.zip')) {
             if (Test-Path ($DriverPackage.Fullname -replace "$($DriverPackage.Extension)", '')) {
                 $DriverPackage = Get-Item ($DriverPackage.Fullname -replace "$($DriverPackage.Extension)", '')
@@ -49,26 +60,30 @@ function Read-OSDriverPackage {
             }
         }
 
-        # Get all drivers. Strip of Driver Package Path so Driver path is relative to the package.
-        $Drivers = @(Get-OSDriverFile -Path $DriverPackage.FullName |
-                    Get-OSDriver |
-                    ForEach-Object {
-                        $_.DriverFile = ($_.DriverFile -replace [regex]::Escape("$($DriverPackage.Fullname)\"), '')
-                        $_
-                    })
+        if (Test-Path $DriverPackage.FullName) {
+            # Get all drivers. Strip of Driver Package Path so Driver path is relative to the package.
+            $Drivers = @(Get-OSDriverFile -Path $DriverPackage.FullName |
+                        Get-OSDriver |
+                        ForEach-Object {
+                            $_.DriverFile = ($_.DriverFile -replace [regex]::Escape("$($DriverPackage.Fullname)\"), '')
+                            $_
+                        })
 
-        $script:Logger.Info("Updating driver package info file")
-        if ([string]::IsNullOrEmpty($Name)) {
-            $PackageInfoFilename = "$($DriverPackage.Fullname).json"
+            $script:Logger.Info("Updating driver package info file")
+            if ([string]::IsNullOrEmpty($Name)) {
+                $PackageInfoFilename = "$($DriverPackage.Fullname).json"
+            } else {
+                $PackageInfoFilename = Join-Path -Path ($DriverPackage.Parent.FullName) -ChildPath "$Name.json"
+            }
+            Write-PackageInfoFile -Path "$PackageInfoFilename" -Drivers $Drivers
+
+            # Remove temporary content
+            if ($Expanded) {
+                $script:Logger.Debug("Remove temporary content.")
+                Remove-Item -Path $DriverPackage -Recurse -Force
+            }
         } else {
-            $PackageInfoFilename = Join-Path -Path ($DriverPackage.Parent.FullName) -ChildPath "$Name.json"
-        }
-        Write-PackageInfoFile -Path "$PackageInfoFilename" -Drivers $Drivers
-
-        # Remove temporary content
-        if ($Expanded) {
-            $script:Logger.Debug("Remove temporary content.")
-            Remove-Item -Path $DriverPackage -Recurse -Force
+            $script:Logger.Error("'$($DriverPackage.FullName)' not found.")
         }
 
         if ($PassThru.IsPresent){

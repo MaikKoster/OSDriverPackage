@@ -213,7 +213,7 @@ function New-OSDriverPackageDefinition {
             }
 
             # Plug-And-Play IDs
-            if ($null -ne $PNPIDs) {
+            if (($null -ne $PNPIDs) -and ($PNPIDs.count -gt 0)) {
                 $script:Logger.Debug("Creating PNPIDS section.")
                 $NewDefinition['PNPIDS'] = [System.Collections.Specialized.OrderedDictionary]@{}
                 foreach ($PNPID in $PNPIDs.Keys) {
