@@ -61,13 +61,17 @@ function Compress-OSDriverPackage {
             throw "Archive '$ArchiveFilename' exists already and '-Force' is not specified."
         }
 
-        Compress-Folder -Path $Path -Name $Name -ArchiveType $ArchiveType -HighCompression -PassThru -Verbose:$false
+        $ArchivePath = Compress-Folder -Path $Path -Name $Name -ArchiveType $ArchiveType -HighCompression -PassThru -Verbose:$false
 
         if ($RemoveFolder.IsPresent) {
             if ($PSCmdlet.ShouldProcess("Removing folder '$Path'.")) {
                 $script:Logger.Info("Removing folder '$Path'.")
                 $null = Remove-Item -Path $Path -Recurse -Force
             }
+        }
+
+        if ($Passthru.IsPresent) {
+            $ArchivePath
         }
     }
 }
