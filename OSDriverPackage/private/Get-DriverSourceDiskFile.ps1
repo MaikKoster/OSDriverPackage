@@ -42,7 +42,7 @@ function Get-DriverSourceDiskFile {
                 $script:Logger.Debug("Stop parsing inf file due to '; set SIGNING_KEY_VERSION' line.")
                 break
             }
-            "^\[(.+)\]$"  {
+            "^\[(.+)\]"  {
                 # Section
                 $Section = $Matches[1]
                 $script:Logger.Trace("Section: $Section")
