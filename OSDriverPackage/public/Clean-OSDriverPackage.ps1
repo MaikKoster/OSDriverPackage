@@ -25,7 +25,7 @@ Function Clean-OSDriverPackage {
         # Specifies that should be compared
         [Parameter(Mandatory, Position=0, ValueFromPipeline)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({(Test-Path $_.DriverPackage) -and (((Get-Item $_.DriverPackage).Extension -eq '.cab') -or ((Get-Item $_.DriverPackage).Extension -eq '.zip'))})]
+        #[ValidateScript({(Test-Path $_.DriverPackage) -and (((Get-Item $_.DriverPackage).Extension -eq '.cab') -or ((Get-Item $_.DriverPackage).Extension -eq '.zip'))})]
         [PSCustomObject]$DriverPackage,
 
         # Specifies a list of critical PnP IDs, that must be covered by the Core Drivers
@@ -74,6 +74,28 @@ Function Clean-OSDriverPackage {
     process {
         $script:Logger.Trace("Cleanup driver package ('DriverPackage':'$($DriverPackage.DriverPackage)'")
 
+        if (Test-Path -Path $DriverPackage.DriverPackage) {
+            $Pkg = (Get-Item -Path ($DriverPackage.DriverPackage))
+            $PkgPath = Join-Path -Path ($Pkg.Directory) -ChildPath ($Pkg.BaseName)
+            $ArchiveType = $Pkg.Extension -replace '\.' , ''
+            $OldArchiveSize = $Pkg.Length
+        } else {
+            $PkgPath = ($DriverPackage.DriverPackage -replace '.cab|.zip|.txt', '')
+            if (Test-Path -Path $PkgPath) {
+                # Archive not created yet. Clean content first.
+                if ($DriverPackage.DriverPackage -like '.cab') {
+                    $ArchiveType = 'CAB'
+                } else {
+                    $ArchiveType = 'ZIP'
+                }
+
+                $OldArchiveSize = 0
+            } else {
+                $script:logger.Error("No content found for Driver Package '$PkgPath'.")
+                throw("No content found for Driver Package '$PkgPath'.")
+            }
+        }
+
         # Ensure drivers are loaded
         if ($null -eq $DriverPackage.Drivers) {
             $Drivers = Get-OSDriver -Path ($DriverPackage.DriverPackage -replace '.cab|.zip|.txt', '.json')
@@ -83,10 +105,6 @@ Function Clean-OSDriverPackage {
                 $DriverPackage.Drivers = $Drivers
             }
         }
-        $Pkg = (Get-Item -Path ($DriverPackage.DriverPackage))
-        $PkgPath = Join-Path -Path ($Pkg.Directory) -ChildPath ($Pkg.BaseName)
-        $ArchiveType = $Pkg.Extension -replace '\.' , ''
-        $OldArchiveSize = $Pkg.Length
         $OldDriverCount = $DriverPackage.Drivers.Count
 
         $script:Logger.Info("Processing driver package '$($DriverPackage.DriverPackage)'.")
@@ -103,7 +121,7 @@ Function Clean-OSDriverPackage {
             $null = Compare-OSDriverPackage @CompareParams
 
             # Get results that can be removed
-            $RemoveResults = $DriverPackage.Drivers | Where-Object {$_.Replace}
+            $RemoveResults = @($DriverPackage.Drivers | Where-Object {$_.Replace})
         } else {
             $RemoveResults = @()
         }
@@ -154,7 +172,7 @@ Function Clean-OSDriverPackage {
             if ($AllDriversRemoved) {
                 $script:Logger.Info("All drivers have been removed from Driver package. Removing Driver Package and related files as well.")
                 # Remove related files
-                Remove-Item -Path ($DriverPackage.DriverPackage) -Force
+                Remove-Item -Path ($DriverPackage.DriverPackage) -Force -ErrorAction SilentlyContinue
                 Remove-Item -Path ($DriverPackage.DefinitionFile) -Force
                 Remove-Item -Path ($DriverPackage.DriverPackage -replace '.cab|.zip|.txt', '.json' ) -Force
                 $NewFolderSize = @{
@@ -165,26 +183,33 @@ Function Clean-OSDriverPackage {
                 $NewArchiveSize = 0
                 $NewDriverCount = 0
             } else {
-                # Update Driver Package Info file
-                Read-OSDriverPackage -Path $PkgPath
+                if ($RemoveResults.Count -gt 0) {
+                    # Update Driver Package Info file
+                    Read-OSDriverPackage -Path $PkgPath
 
-                # Get list of updated Drivers
-                $Drivers = Get-OSDriver -Path ($DriverPackage.DriverPackage -replace '.cab|.zip|.txt', '.json')
-                if ($Drivers.Count -eq 1) {
-                    $DriverPackage.Drivers = ,$Drivers
-                } else {
-                    $DriverPackage.Drivers = $Drivers
-                }
+                    # Get list of updated Drivers
+                    $Drivers = Get-OSDriver -Path ($DriverPackage.DriverPackage -replace '.cab|.zip|.txt', '.json')
+                    if ($Drivers.Count -eq 1) {
+                        $DriverPackage.Drivers = ,$Drivers
+                    } else {
+                        $DriverPackage.Drivers = $Drivers
+                    }
 
-                # TODO: Update Definition file. cleanup WQL and PNPIDS sections
-                $Definition = $DriverPackage.Definition
-                If ($Definition.Keys -contains 'WQL') {
-                    $Section = $Definition['WQL']
-                    #TODO Update WQL section
-                }
-                If ($Definition.Keys -contains 'PNPIDS') {
-                    $Section = $Definition['WQL']
-                    #TODO: Update PNPIDS section
+                    $Definition = $DriverPackage.Definition
+                    If ($Definition.Keys -contains 'PNPIDS') {
+                        $PNPIDs = @{}
+                        $DriverPackage.Drivers | Select-Object -ExpandProperty HardwareIDs |
+                            Group-Object  -Property HardwareID |
+                            ForEach-Object {$_.Group | Select-Object HardwareID, HardwareDescription, Architecture -First 1} |
+                            Sort-Object -Property HardwareID | ForEach-Object {
+                                $HardwareID = $_.HardwareID
+                                if (-Not([string]::IsNullOrEmpty($HardwareID))) {
+                                    $PNPIDs["$HardwareID"] = $_.HardwareDescription
+                                }
+                            }
+
+                        $DriverPackage.Definition.PNPIDS = $PNPIDs
+                    }
                 }
 
                 # Cleanup unreferenced files if requested
@@ -195,11 +220,15 @@ Function Clean-OSDriverPackage {
                         foreach ($SourceFile in $Driver.SourceFiles) {
                             $SourceFilePath = (Join-Path -Path $ParentPath -ChildPath $SourceFile).ToUpper()
                             $ReferencedFiles["$SourceFilePath"] = $null
+                            # Referenced files might still be compressed. Add them as well for easier validation
+                            $SourceFilePath2 = "$($SourceFilePath.Substring(0, ($SourceFilePath.Length - 1)))_"
+                            $ReferencedFiles["$SourceFilePath2"] = $null
                         }
                     }
 
                     Get-ChildItem -Path $PkgPath -File -Recurse -Force| ForEach-Object {
-                        if (-Not($ReferencedFiles.ContainsKey("$($_.FullName.ToUpper())"))) {
+                        $Filename = $_.FullName.ToUpper()
+                        if (-Not($ReferencedFiles.ContainsKey($Filename))) {
                             $script:Logger.Info("Removing unreferenced file '$($_.FullName)'.")
                             Remove-Item -Path $_.FullName -Force
                         }
@@ -213,13 +242,13 @@ Function Clean-OSDriverPackage {
                 # Update statistics
                 $NewFolderSize = Get-FolderSize -Path $PkgPath
 
-                # Create new archive
-                $null = Compress-OSDriverPackage -Path "$PkgPath" -ArchiveType $ArchiveType -Force -RemoveFolder:($Expanded -and (-Not($KeepFolder.IsPresent)))
+                # Create new archive, if there have been some changes
+                if ((-Not(Test-Path -Path $DriverPackage.DriverPackage)) -or ($OldFolderSize.Dirs -ne $NewFolderSize.Dirs) -or ($OldFolderSize.Files -ne $NewFolderSize.Files) -or ($OldFolderSize.Bytes -ne $NewFolderSize.Bytes)) {
+                    $DriverPackage.DriverPackage = Compress-OSDriverPackage -Path "$PkgPath" -ArchiveType $ArchiveType -Force -RemoveFolder:($Expanded -and (-Not($KeepFolder.IsPresent))) -Passthru
+                }
 
-                $Pkg = (Get-Item $DriverPackage.DriverPackage)
-                $NewArchiveSize = $Pkg.Length
-                $NewPackage = Get-OSDriverPackage -Path $Pkg.FullName -Verbose:$false
-                $NewDriverCount = $NewPackage.Drivers.Count
+                $NewArchiveSize = (Get-Item $DriverPackage.DriverPackage).Length
+                $NewDriverCount = $DriverPackage.Drivers.Count
             }
 
             $Result = [PSCustomObject]@{
