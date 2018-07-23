@@ -26,12 +26,14 @@ function Get-DriverSourceDiskFile {
         # Add inf file itself to the list of SourceDiskFiless
         $SourceDiskFiles += (Split-Path -Path $Path -Leaf)
 
+        $RootPath = Split-Path -Path $Path -Parent
+
         # Evaluate inf file
         # Get content of Strings, SourceDisksNames and SourceDisksFiles sections
         # Order of sections is not defined. Read them all first.
         $Strings = @{}
-        $Disks = [ordered]@{}
-        $Files = [ordered]@{}
+        $Disks = @{}
+        $Files = @{}
         switch -Regex (Get-Content $Path) {
             "; set SIGNING_KEY_VERSION"  {
                 # if it exists, it should be at the very end of an inf file
@@ -63,10 +65,53 @@ function Get-DriverSourceDiskFile {
                     $script:Logger.Trace("Variable found: $($Matches[1]) = $Value")
                 } elseif ($Section -like 'SourceDisksNames*') {
                     $script:Logger.Trace("SourceDisk found: $_")
-                    $Disks[$Matches[1]] = $Matches[2] -replace ';(.+)' ,''
+                    $Diskname = ($Matches[1])
+                    # Properly handle same disk for different architecture
+                    if ($Section -like '*.*') {
+                        if ($Section -like '*.*') {
+                            # Add suffix to Diskname
+                            $Suffix = $Section.Substring($Section.IndexOf('.'))
+                            $Diskname = "$Diskname$Suffix"
+                        }
+                    }
+                    $Disks[$Diskname] = $Matches[2] -replace ';(.+)' ,''
                 } elseif ($Section -like 'SourceDisksFiles*') {
                     $script:Logger.Trace("SourceFile found: $_")
-                    $Files[$Matches[1]] = $Matches[2] -replace ';(.+)' ,''
+                    # Properly handle same filename for different architecture
+                    $Diskname = $Matches[2] -replace ';(.+)' ,''
+                    if ($Section -like '*.*') {
+                        if ($Section -like '*.*') {
+                            # Add suffix to Diskname
+                            $Suffix = $Section.Substring($Section.IndexOf('.'))
+                            $TempDiskname = $Diskname -split ','
+                            $TempDiskNameWithSuffix = "$($TempDiskname[0].Trim())$Suffix"
+
+                            # Check if SourceDiskname exists
+                            if ($Disks.ContainsKey($TempDiskNameWithSuffix)) {
+                                $TempDiskname[0] = $TempDiskNameWithSuffix
+                            } elseif ($Disks.ContainsKey($Diskname)) {
+                                # disk with suffix does not exist, but without does. Keep original Diskname
+                            } else {
+                                # SourceDisksNames might have not been parsed yet. Add both and sort out later
+                                $Filename = "$($Matches[1])"
+                                if ($Files.ContainsKey($Filename)) {
+                                    $Files[$Filename] += @("$Diskname")
+                                } else {
+                                    $Files.Add($Filename, @("$Diskname"))
+                                }
+                                $TempDiskname[0] = $TempDiskNameWithSuffix
+                            }
+                            $Diskname = $TempDiskname -join ','
+                        }
+                    }
+
+                    $Filename = "$($Matches[1])"
+                    if ($Files.ContainsKey($Filename)) {
+                        $Files[$Filename] += @("$Diskname")
+                    } else {
+                        $Files.Add($Filename, @("$Diskname"))
+                    }
+
                 }
             }
         }
@@ -119,63 +164,105 @@ function Get-DriverSourceDiskFile {
         if ($Files.Count -gt 0) {
             $script:Logger.Trace("Processing SourceDisksFiles ...")
             foreach ($File in @($Files.Keys)) {
-                $Values = $Files["$File"] -split ','
-                $Filepath = $Disks["$($Values[0])"]
-                if ($Values.Count -gt 1) {
-                    # possible subfolder specified
-                    $Subfolder = ''
-                    if (-Not([string]::IsNullOrEmpty($Values[1]))) {
-                        $script:Logger.Trace("Subfolder specified $($Values[1])")
-                        # subfolder specified
-                        # e.g. Driver.cur	= 1,%Cursor_DataPath%
-                        if ($Values[1] -match '%(.+?)%') {
-                            $script:Logger.Trace("Subfolder contains variable.")
-                            # subfolder contains a variable. Resolve
-                            $VarName = $Matches[1]
-                            $script:Logger.Trace("Variable name : $VarName")
-                            if (-Not([string]::IsNullOrEmpty($VarName))) {
-                                if ($Strings.ContainsKey($VarName)){
-                                    $Subfolder = $Values[1] -replace '%(.+?)%',"$($Strings[$VarName])"
-                                    $script:Logger.Trace("Epxand to '$Subfolder'")
-                                } else {
-                                    $script:Logger.Warn("Unable to resolve '$($Matches[1])' of SourceDisksFiles '$($Files["$File"])'.")
-                                    $Subfolder = $Values[1]
-                                }
-                            } else {
-                                # use as it is
-                                $Subfolder = ''
-                            }
+                foreach ($FileTarget in $Files["$File"]) {
+                    $Values = $FileTarget -split ','
+
+                    # Some inf files have architecture specific SourceDisksNames
+                    # But no corresponding architecture specific SourceDisksFiles
+                    # Try to match properly
+                    $Filepath = ''
+                    if ($values.Count -gt 0) {
+                        $DiskName = $Values[0]
+                        if ($Disks.ContainsKey($Diskname)) {
+                            $Filepath = $Disks["$Diskname"]
                         } else {
-                            # Use specified path
-                            $Subfolder = $Values[1]
+                            foreach ($ArchDiskName in $Disks.Keys) {
+                                $TempDiskName = ($ArchDiskName -split '\.')[0]
+                                if (($TempDiskname -eq $Diskname) -or ($TempDiskname -eq (($Diskname -split '\.')[0]))) {
+                                    $Filepath = $Disks["$ArchDiskName"]
+                                    break
+                                }
+                            }
                         }
                     }
 
-                    # Fix '\\' in subfolder
-                    $Subfolder = $Subfolder.Trim() -replace '\\\\', '\'
-                    # Remove any '"'
-                    $Subfolder = $Subfolder.Trim() -replace '"', ''
-                    # remove facing and trailing '\'
-                    $Subfolder = $Subfolder.Trim('\')
-                }
+                    $Subfolder = ''
+                    if ($Values.Count -gt 1) {
+                        # possible subfolder specified
+                        if (-Not([string]::IsNullOrEmpty($Values[1]))) {
+                            $script:Logger.Trace("Subfolder specified $($Values[1])")
+                            # subfolder specified
+                            # e.g. Driver.cur	= 1,%Cursor_DataPath%
+                            if ($Values[1] -match '%(.+?)%') {
+                                $script:Logger.Trace("Subfolder contains variable.")
+                                # subfolder contains a variable. Resolve
+                                $VarName = $Matches[1]
+                                $script:Logger.Trace("Variable name : $VarName")
+                                if (-Not([string]::IsNullOrEmpty($VarName))) {
+                                    if ($Strings.ContainsKey($VarName)){
+                                        $Subfolder = $Values[1] -replace '%(.+?)%',"$($Strings[$VarName])"
+                                        $script:Logger.Trace("Epxand to '$Subfolder'")
+                                    } else {
+                                        $script:Logger.Warn("Unable to resolve '$($Matches[1])' of SourceDisksFiles '$FileTarget'.")
+                                        $Subfolder = $Values[1]
+                                    }
 
-                if (-Not([string]::IsNullOrEmpty($Subfolder))) {
-                    $Filepath = (("$FilePath\$Subfolder") -replace '"','').Trim('\').Trim()
-                }
+                                } else {
+                                    # use as it is
+                                    $Subfolder = $Values[1]
+                                }
+                            } else {
+                                # Use specified path
+                                $Subfolder = $Values[1]
+                            }
+                        }
 
-                # Trim whitespaces from Name
-                $File = $File.Trim()
+                        # Fix '\\' in subfolder
+                        $Subfolder = $Subfolder.Trim() -replace '\\\\', '\'
+                        # Remove any '"'
+                        $Subfolder = $Subfolder.Trim() -replace '"', ''
+                        # remove facing and trailing '\'
+                        $Subfolder = $Subfolder.Trim('\')
+                        # remove trailing '.\'
+                        $Subfolder = $Subfolder.TrimStart('.\')
+                    }
 
-                if ([string]::IsNullOrEmpty($Filepath)) {
-                    $SourceDiskFiles += $File
-                    $script:Logger.Trace("SourceDiskFile: $File")
-                } else {
-                    $SourceDiskFiles += "$FilePath\$File"
-                    $script:Logger.Trace("SourceDiskFile: $FilePath\$File")
+                    if (-Not([string]::IsNullOrEmpty($Subfolder))) {
+                        $Filepath = ("$FilePath\$Subfolder")
+                    }
+
+                    # Trim FilePath
+                    $Filepath = ($Filepath -replace '"','').Trim('\').Trim().TrimStart('.\')
+
+                    # Trim Filename
+                    $File = ($File -replace '"','').Trim('\').Trim().TrimStart('.\')
+
+                    if ([string]::IsNullOrEmpty($Filepath)) {
+                        $SourceDiskFile = $File
+                        $script:Logger.Trace("SourceDiskFile: $File")
+                    } else {
+                        $SourceDiskFile = "$FilePath\$File"
+                        $script:Logger.Trace("SourceDiskFile: $FilePath\$File")
+                    }
+
+                    # Test for compressed files
+                    $SourceDiskFilePath = Join-Path -Path $RootPath -ChildPath $SourceDiskFile
+                    if (-Not(Test-Path -Path $SourceDiskFilePath)) {
+                        $SourceDiskFileCompressed = "$($SourceDiskFile.Substring(0, ($SourceDiskFile.Length - 1)))_"
+                        $SourceDiskFileCompressedPath = Join-Path -Path $RootPath -ChildPath $SourceDiskFileCompressed
+                        if (Test-Path -Path $SourceDiskFileCompressedPath) {
+                            # "Real" file doesn't exist, but compressed one does
+                            $script:Logger.Debug("SourceDiskFile '$SourceDiskFile' is still compressed. Replacing with '$SourceDiskFileCompressed'.")
+                            $SourceDiskFile = $SourceDiskFileCompressed
+                        } else {
+                            $script:Logger.Warn("SourceDiskFile '$SourceDiskFile' does not exist. Removing file from result.")
+                        }
+                    }
+                    $SourceDiskFiles += $SourceDiskFile
                 }
             }
         }
 
-        $SourceDiskFiles
+        $SourceDiskFiles | Select-Object -Unique
     }
 }
