@@ -1,7 +1,7 @@
-function Copy-OSDriverPackage {
+function Move-OSDriverPackage {
     <#
     .SYNOPSIS
-        Copies Driver Packages to a different location.
+        Moves Driver Package(s) to a different location.
 
     .DESCRIPTION
 
@@ -74,25 +74,24 @@ function Copy-OSDriverPackage {
 
     process {
         if ($null -ne $DriverPackage) {
-            $script:Logger.Trace("Copy driver package ('DriverPackage':'$($DriverPackage.DriverPackage)', 'Destination':'$Destination', 'Name':'$($Name -join ',')', 'Tag':'$($Tag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'Architecture':'$($Architecture -join ',')', 'Make':'$($Make -join ',')', 'Model':'$($Model -join ',')', 'All':'$All'")
+            $script:Logger.Trace("Move driver package ('DriverPackage':'$($DriverPackage.DriverPackage)', 'Destination':'$Destination', 'Name':'$($Name -join ',')', 'Tag':'$($Tag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'Architecture':'$($Architecture -join ',')', 'Make':'$($Make -join ',')', 'Model':'$($Model -join ',')', 'All':'$All'")
             $DriverPackages = ,$DriverPackage
         } else {
-            $script:Logger.Trace("Copy driver package ('Path':'$Path', 'Destination':'$Destination', 'Name':'$($Name -join ',')', 'Tag':'$($Tag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'Architecture':'$($Architecture -join ',')', 'Make':'$($Make -join ',')', 'Model':'$($Model -join ',')', 'All':'$All'")
+            $script:Logger.Trace("Move driver package ('Path':'$Path', 'Destination':'$Destination', 'Name':'$($Name -join ',')', 'Tag':'$($Tag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'Architecture':'$($Architecture -join ',')', 'Make':'$($Make -join ',')', 'Model':'$($Model -join ',')', 'All':'$All'")
             $DriverPackages = Get-OSDriverPackage -Path $Path -Name $Name -OSVersion $OSVersion -Architecture $Architecture -Tag $Tag -Make $Make -Model $Model
         }
 
         Foreach ($DrvPkg in $DriverPackages){
             if ((Split-Path -Path $DrvPkg.DriverPackage -Parent) -ne $Destination) {
-                #TODO: Update to use Robocopy. Faster and more reliable
-                $CopyArgs = @{
+                $MoveArgs = @{
                     Destination = $Destination
                     Force = $Force.IsPresent
                 }
 
                 # Archive
                 $DriverPackageName = $DrvPkg.DriverPackage
-                $script:Logger.Info("Copying driver package '$DriverPackageName' to '$Destination'.")
-                Copy-Item @CopyArgs -Path $DriverPackageName
+                $script:Logger.Info("Moving driver package '$DriverPackageName' to '$Destination'.")
+                Move-Item @MoveArgs -Path $DriverPackageName
 
                 # Definition File
                 $DefinitionFile = $DrvPkg.DefinitionFile
@@ -100,24 +99,24 @@ function Copy-OSDriverPackage {
                     $script:Logger.Warn("Definition File '$DefinitionFile' is missing. Creating stub file.")
                     New-OSDriverPackageDefinition -DriverPackagePath $DriverPackageName
                 }
-                $script:Logger.Info("Copying definition file '$DefinitionFile' to '$Destination'.")
-                Copy-Item @CopyArgs -Path $DefinitionFile
+                $script:Logger.Info("Moving definition file '$DefinitionFile' to '$Destination'.")
+                Move-Item @MoveArgs -Path $DefinitionFile
 
                 if ($All.IsPresent) {
                     # Info File
                     $InfoFile = ($DrvPkg.DriverPackage -replace '.cab|.zip|.txt', '.json')
                     $script:Logger.Info("Copying driver info file '$InfoFile' to '$Destination'.")
-                    Copy-Item @CopyArgs -Path $InfoFile
+                    Move-Item @MoveArgs -Path $InfoFile
 
                     # Archive content
                     $ExpandedContent = ($DrvPkg.DriverPackage -replace '.cab|.zip|.txt', '')
                     if (Test-Path -Path $ExpandedContent) {
                         $script:Logger.Info("Copying Driver contentfrom '$ExpandedContent' to '$Destination'.")
-                        Copy-Item @CopyArgs -Path $ExpandedContent
+                        Move-Item @MoveArgs -Path $ExpandedContent
                     }
                 }
             } else {
-                $Script:Logger.Warn("Source path '$($DrvPkg.DriverPackage)' is the same as the destination path '$Destination'. Skipping copy operation.")
+                $Script:Logger.Warn("Source path '$($DrvPkg.DriverPackage)' is the same as the destination path '$Destination'. Skipping move operation.")
             }
         }
     }
