@@ -34,7 +34,7 @@ Function Compare-OSDriverPackage {
         # Specifies the Driver Package that should be compared
         [Parameter(Mandatory, Position=0)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({(Test-Path $_.DriverPackage) -and (((Get-Item $_.DriverPackage).Extension -eq '.cab') -or ((Get-Item $_.DriverPackage).Extension -eq '.zip'))})]
+        [ValidateScript({(Test-Path $_.DefinitionFile)})]
         [PSCustomObject]$DriverPackage,
 
         # Specifies a list of critical PnP IDs, that must be covered by the Core Drivers
@@ -197,6 +197,14 @@ Function Compare-OSDriverPackage {
 
                 if ($CoreDrivers.Count -eq 0) {
                     $script:Logger.Debug("No related driver in '$($DriverPackage.DriverPackage)'.")
+                    # Update Driver object to allow proper evaluation later
+                    if (-Not([bool]($Driver.PSobject.Properties.Name -match "Replace"))) {
+                        $Driver | Add-Member -NotePropertyName 'Replace' -NotePropertyValue $false
+                    }
+
+                    if (-Not([bool]($Driver.PSobject.Properties.Name -match "MissingHardwareIDs"))) {
+                        $Driver | Add-Member -NotePropertyName 'MissingHardwareIDs' -NotePropertyValue  ([System.Collections.ArrayList](@()))
+                    }
                 } else {
                     # Prepare Drivers
                     $PackageHardwareIDs = @()

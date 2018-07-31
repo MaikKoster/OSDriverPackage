@@ -118,7 +118,8 @@ function Get-OSDriverPackage {
             } else {
                 # No archive found with the Driver Package name.
                 # Need to check definition
-                $DriverPackageFilename = [string]::Empty
+                #$DriverPackageFilename = [string]::Empty
+                $DriverPackageFilename = ($DefinitionFileName -replace '.txt', '.zip')
             }
 
             if (Test-Path $DefinitionFileName) {
@@ -254,14 +255,7 @@ function Get-OSDriverPackage {
                         Read-OSDriverPackage -Path $Root
                     }
 
-
-                    # Need to properly handle the automated unboxing of PowerShell
-                     $Drivers = Get-OSDriver -Path $InfoFileName
-                     if ($Drivers.Count -eq 1) {
-                         $DriverPackage.Drivers = ,$Drivers
-                     } else {
-                         $DriverPackage.Drivers = $Drivers
-                     }
+                    $DriverPackage.Drivers = Get-OSDriver -Path $InfoFileName
                 }
 
                 if (($CreateTSVariables.IsPresent) -and ($null -ne $TSEnvironment)) {

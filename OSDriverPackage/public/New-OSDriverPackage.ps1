@@ -89,12 +89,16 @@ function New-OSDriverPackage {
         # This will remove all unreferenced files and empty folders
         [switch]$Clean,
 
-        # Specifies if the name and path of the Driver Package and Definition files should be returned.
-        [switch]$PassThru
+        # Specifies if the new Driver Package should be returned.
+        [switch]$PassThru,
+
+        # Specifies, if no Driver Package archive file should be created
+        # Usefull for temporary evaluation of the content of Driver Packages
+        [switch]$NoArchive
     )
 
     process {
-        $script:Logger.Trace("New driver package ('Path':'$Path', 'Name':'$Name', ArchiveType':'$ArchiveType', 'Tag':'$($Tag -join ',')', 'ExcludeTag':'$($ExcludeTag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'ExcludeOSVersion':'$($ExcludeOSVersion -join ',')', 'Architecture':'$($Architecture -join ',')', 'Make':'$($Make -join ',')', 'ExcludeMake':'$($ExcludeMake -join ',')', 'Model':'$($Model -join ',')', 'ExcludeModel':'$($ExcludeModel -join ',')', 'URL':'$URL', 'SkipPNPDetection':'$SkipPNPDetection', 'Force':'$Force', 'KeepFiles':'$KeepFiles', 'Clean':'$Clean', 'PassThru':'$PassThru'")
+        $script:Logger.Trace("New driver package ('Path':'$Path', 'Name':'$Name', ArchiveType':'$ArchiveType', 'Tag':'$($Tag -join ',')', 'ExcludeTag':'$($ExcludeTag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'ExcludeOSVersion':'$($ExcludeOSVersion -join ',')', 'Architecture':'$($Architecture -join ',')', 'Make':'$($Make -join ',')', 'ExcludeMake':'$($ExcludeMake -join ',')', 'Model':'$($Model -join ',')', 'ExcludeModel':'$($ExcludeModel -join ',')', 'URL':'$URL', 'SkipPNPDetection':'$SkipPNPDetection', 'Force':'$Force', 'KeepFiles':'$KeepFiles', 'Clean':'$Clean', 'PassThru':'$PassThru', 'NoArchive':'$NoArchive'")
 
         $Path = (Get-Item -Path $Path.TrimEnd('\')).FullName
 
@@ -157,12 +161,16 @@ function New-OSDriverPackage {
                 $DriverPackage.DriverPackage = "$(Join-Path -Path (Split-Path -Path $Path -Parent) -ChildPath $Name).$ArchiveType"
             }
 
-            $CleanResult = Clean-OSDriverPackage -DriverPackage $DriverPackage -RemoveUnreferencedFiles -KeepFolder:($KeepFiles.IsPresent)
+            $CleanResult = Clean-OSDriverPackage -DriverPackage $DriverPackage -RemoveUnreferencedFiles -KeepFolder:($KeepFiles.IsPresent) -NoArchive:($NoArchive.IsPresent)
             $DriverPackage.DriverPackage = $CleanResult.DriverPackage
         } else {
             # Compress files
-            $script:Logger.Info("Compressing driver package source content.")
-            $DriverPackage.DriverPackage = Compress-OSDriverPackage -Path $Path -Name $Name -ArchiveType $ArchiveType -Force:($Force.IsPresent) -RemoveFolder:(-Not($KeepFiles.IsPresent)) -Passthru
+            if ($NoArchive.IsPresent) {
+                $DriverPackage.DriverPackage = ($DriverPackage.DefinitionFile -replace '.txt', ".$ArchiveType")
+            } else {
+                $script:Logger.Info("Compressing driver package source content.")
+                $DriverPackage.DriverPackage = Compress-OSDriverPackage -Path $Path -Name $Name -ArchiveType $ArchiveType -Force:($Force.IsPresent) -RemoveFolder:(-Not($KeepFiles.IsPresent)) -Passthru
+            }
         }
 
         if ($PassThru.IsPresent) {

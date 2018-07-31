@@ -53,7 +53,11 @@ Function Clean-OSDriverPackage {
 
         # Specifies if all files, that aren't referenced by any of the Drivers in the supplied Driver Package
         # should be removed.
-        [switch]$RemoveUnreferencedFiles
+        [switch]$RemoveUnreferencedFiles,
+
+        # Specifies, if no Driver Package archive file should be created/updated
+        # Usefull for temporary evaluation of the content of Driver Packages
+        [switch]$NoArchive
     )
 
     begin {
@@ -132,49 +136,20 @@ Function Clean-OSDriverPackage {
             $RemoveResults += $DriverPackage.Drivers | Where-Object {((($_.HardwareIDs | Group-Object -Property 'Architecture' | Where-Object {$_.Name -eq "$Architecture"}).Count -eq 0) -and (-Not($_.Replace)))}
         }
 
+        # Keep copy of remaining Drivers for further evaluation later
+        $RemainingDrivers = $DriverPackage.Drivers | Where-Object {$RemoveResults -notcontains $_} | ForEach-Object {$_.PSObject.Copy()}
+
         if ($RemoveResults.Count -gt 0 -or $RemoveUnreferencedFiles.IsPresent) {
             $script:Logger.Info("Compared $($DriverPackage.Drivers.Count) drivers, $($RemoveResults.Count) can be removed.")
-            $Expanded = $false
-            # Expand content if necessary
-            if (-Not(Test-Path $PkgPath)) {
-                $script:Logger.Info("Temporarily expanding content of '$($Pkg.Fullname)'")
-                Expand-OSDriverPackage -Path $Pkg.FullName
-                $Expanded = $true
-            }
 
-            # Keep some data for statistics
-            $OldFolderSize = Get-FolderSize -Path $PkgPath
+            if ($RemoveResults.count -gt 0 -and ($DriverPackage.Drivers.Count -eq $RemoveResults.count)) {
+                $script:Logger.Info("All drivers from the package can be removed. Removing Driver Package and related files.")
 
-            # Convert relative path into absolute path
-            $RemoveDriverFiles = $RemoveResults |
-                Select-Object -ExpandProperty DriverFile -Unique |
-                ForEach-Object {
-                    Join-Path -Path $PkgPath -ChildPath $_
-                }
-
-            foreach ($Remove in $RemoveDriverFiles){
-                Remove-OSDriver -Path $Remove
-            }
-
-            $AllDriversRemoved = $false
-            if (Test-Path -Path $PkgPath) {
-                # Check if there are drivers left
-                $ExistingDrivers = Get-ChildItem -Path $PkgPath -Recurse -File -Filter '*.inf'
-                if ($ExistingDrivers.count -eq 0) {
-                    $AllDriversRemoved = $true
-                    Remove-Item $PkgPath -Force -Recurse
-                }
-            } else {
-                # Driver Package path has been removed.
-                $AllDriversRemoved = $true
-            }
-
-            if ($AllDriversRemoved) {
-                $script:Logger.Info("All drivers have been removed from Driver package. Removing Driver Package and related files as well.")
                 # Remove related files
+                Remove-Item -Path ($DriverPackage.DriverPackage -replace '.cab|.zip|.txt', '') -Recurse -Force -ErrorAction SilentlyContinue
                 Remove-Item -Path ($DriverPackage.DriverPackage) -Force -ErrorAction SilentlyContinue
-                Remove-Item -Path ($DriverPackage.DefinitionFile) -Force
-                Remove-Item -Path ($DriverPackage.DriverPackage -replace '.cab|.zip|.txt', '.json' ) -Force
+                Remove-Item -Path ($DriverPackage.DefinitionFile) -Force -ErrorAction SilentlyContinue
+                Remove-Item -Path ($DriverPackage.DriverPackage -replace '.cab|.zip|.txt', '.json' ) -Force -ErrorAction SilentlyContinue
                 $NewFolderSize = @{
                     Dirs=0
                     Files=0
@@ -182,73 +157,129 @@ Function Clean-OSDriverPackage {
                 }
                 $NewArchiveSize = 0
                 $NewDriverCount = 0
+
+
             } else {
-                if ($RemoveResults.Count -gt 0) {
-                    # Update Driver Package Info file
-                    Read-OSDriverPackage -Path $PkgPath
+                $Expanded = $false
+                # Expand content if necessary
+                if (-Not(Test-Path $PkgPath)) {
+                    $script:Logger.Info("Temporarily expanding content of '$($Pkg.Fullname)'")
+                    Expand-OSDriverPackage -Path $Pkg.FullName
+                    $Expanded = $true
+                }
 
-                    # Get list of updated Drivers
-                    $Drivers = Get-OSDriver -Path ($DriverPackage.DriverPackage -replace '.cab|.zip|.txt', '.json')
-                    if ($Drivers.Count -eq 1) {
-                        $DriverPackage.Drivers = ,$Drivers
-                    } else {
-                        $DriverPackage.Drivers = $Drivers
+                # Keep some data for statistics
+                $OldFolderSize = Get-FolderSize -Path $PkgPath
+
+                # Convert relative path into absolute path
+                $RemoveDriverFiles = $RemoveResults |
+                    Select-Object -ExpandProperty DriverFile -Unique |
+                    ForEach-Object {
+                        Join-Path -Path $PkgPath -ChildPath $_
                     }
 
-                    $Definition = $DriverPackage.Definition
-                    If ($Definition.Keys -contains 'PNPIDS') {
-                        $PNPIDs = @{}
-                        $DriverPackage.Drivers | Select-Object -ExpandProperty HardwareIDs |
-                            Group-Object  -Property HardwareID |
-                            ForEach-Object {$_.Group | Select-Object HardwareID, HardwareDescription, Architecture -First 1} |
-                            Sort-Object -Property HardwareID | ForEach-Object {
-                                $HardwareID = $_.HardwareID
-                                if (-Not([string]::IsNullOrEmpty($HardwareID))) {
-                                    $PNPIDs["$HardwareID"] = $_.HardwareDescription
+                foreach ($Remove in $RemoveDriverFiles){
+                    Remove-OSDriver -Path $Remove
+                }
+
+                $AllDriversRemoved = $false
+                if (Test-Path -Path $PkgPath) {
+                    # Check if there are drivers left
+                    $ExistingDrivers = Get-ChildItem -Path $PkgPath -Recurse -File -Filter '*.inf'
+                    if ($ExistingDrivers.count -eq 0) {
+                        $AllDriversRemoved = $true
+                        Remove-Item $PkgPath -Force -Recurse
+                    }
+                } else {
+                    # Driver Package path has been removed.
+                    $AllDriversRemoved = $true
+                }
+
+                if ($AllDriversRemoved) {
+                    $script:Logger.Info("All drivers have been removed from Driver package. Removing Driver Package and related files.")
+                    # Remove related files
+                    Remove-Item -Path ($DriverPackage.DriverPackage) -Force -ErrorAction SilentlyContinue
+                    Remove-Item -Path ($DriverPackage.DefinitionFile) -Force
+                    Remove-Item -Path ($DriverPackage.DriverPackage -replace '.cab|.zip|.txt', '.json' ) -Force
+                    $NewFolderSize = @{
+                        Dirs=0
+                        Files=0
+                        Bytes=0
+                    }
+                    $NewArchiveSize = 0
+                    $NewDriverCount = 0
+                } else {
+                    if ($RemoveResults.Count -gt 0) {
+                        # Update Driver Package Info file
+                        Read-OSDriverPackage -Path $PkgPath
+
+                        # Get list of updated Drivers
+                        $Drivers = Get-OSDriver -Path ($DriverPackage.DriverPackage -replace '.cab|.zip|.txt', '.json')
+                        if ($Drivers.Count -eq 1) {
+                            $DriverPackage.Drivers = ,$Drivers
+                        } else {
+                            $DriverPackage.Drivers = $Drivers
+                        }
+
+                        $Definition = $DriverPackage.Definition
+                        If ($Definition.Keys -contains 'PNPIDS') {
+                            $PNPIDs = @{}
+                            $DriverPackage.Drivers | Select-Object -ExpandProperty HardwareIDs |
+                                Group-Object  -Property HardwareID |
+                                ForEach-Object {$_.Group | Select-Object HardwareID, HardwareDescription, Architecture -First 1} |
+                                Sort-Object -Property HardwareID | ForEach-Object {
+                                    $HardwareID = $_.HardwareID
+                                    if (-Not([string]::IsNullOrEmpty($HardwareID))) {
+                                        $PNPIDs["$HardwareID"] = $_.HardwareDescription
+                                    }
                                 }
+
+                            $DriverPackage.Definition.PNPIDS = $PNPIDs
+                        }
+                    }
+
+                    # Cleanup unreferenced files if requested
+                    if ($RemoveUnreferencedFiles.IsPresent) {
+                        $ReferencedFiles = @{}
+                        foreach ($Driver in $DriverPackage.Drivers) {
+                            $ParentPath = Join-Path -Path $PkgPath -ChildPath (Split-Path -Path ($Driver.DriverFile) -Parent)
+                            foreach ($SourceFile in $Driver.SourceFiles) {
+                                $SourceFilePath = (Join-Path -Path $ParentPath -ChildPath $SourceFile).ToUpper()
+                                $ReferencedFiles["$SourceFilePath"] = $null
+                                # Referenced files might still be compressed. Add them as well for easier validation
+                                $SourceFilePath2 = "$($SourceFilePath.Substring(0, ($SourceFilePath.Length - 1)))_"
+                                $ReferencedFiles["$SourceFilePath2"] = $null
                             }
+                        }
 
-                        $DriverPackage.Definition.PNPIDS = $PNPIDs
-                    }
-                }
-
-                # Cleanup unreferenced files if requested
-                if ($RemoveUnreferencedFiles.IsPresent) {
-                    $ReferencedFiles = @{}
-                    foreach ($Driver in $DriverPackage.Drivers) {
-                        $ParentPath = Join-Path -Path $PkgPath -ChildPath (Split-Path -Path ($Driver.DriverFile) -Parent)
-                        foreach ($SourceFile in $Driver.SourceFiles) {
-                            $SourceFilePath = (Join-Path -Path $ParentPath -ChildPath $SourceFile).ToUpper()
-                            $ReferencedFiles["$SourceFilePath"] = $null
-                            # Referenced files might still be compressed. Add them as well for easier validation
-                            $SourceFilePath2 = "$($SourceFilePath.Substring(0, ($SourceFilePath.Length - 1)))_"
-                            $ReferencedFiles["$SourceFilePath2"] = $null
+                        Get-ChildItem -Path $PkgPath -File -Recurse -Force| ForEach-Object {
+                            $Filename = $_.FullName.ToUpper()
+                            if (-Not($ReferencedFiles.ContainsKey($Filename))) {
+                                $script:Logger.Info("Removing unreferenced file '$($_.FullName)'.")
+                                Remove-Item -Path $_.FullName -Force
+                            }
                         }
                     }
 
-                    Get-ChildItem -Path $PkgPath -File -Recurse -Force| ForEach-Object {
-                        $Filename = $_.FullName.ToUpper()
-                        if (-Not($ReferencedFiles.ContainsKey($Filename))) {
-                            $script:Logger.Info("Removing unreferenced file '$($_.FullName)'.")
-                            Remove-Item -Path $_.FullName -Force
+                    # Remove empty folders
+                    $script:Logger.Info("Removing empty folders.")
+                    Remove-EmptyFolder -Path $PkgPath
+
+                    # Update statistics
+                    $NewFolderSize = Get-FolderSize -Path $PkgPath
+
+                    # Create new archive, if there have been some changes
+                    if ($NoArchive.IsPresent) {
+                        $DriverPackage.DriverPackage = ($DriverPackage.DefinitionFile -replace '.txt', ".$ArchiveType")
+                    } else {
+                        if ((-Not(Test-Path -Path $DriverPackage.DriverPackage)) -or ($OldFolderSize.Dirs -ne $NewFolderSize.Dirs) -or ($OldFolderSize.Files -ne $NewFolderSize.Files) -or ($OldFolderSize.Bytes -ne $NewFolderSize.Bytes)) {
+                            $DriverPackage.DriverPackage = Compress-OSDriverPackage -Path "$PkgPath" -ArchiveType $ArchiveType -Force -RemoveFolder:($Expanded -and (-Not($KeepFolder.IsPresent))) -Passthru
                         }
                     }
+
+                    $NewArchiveSize = (Get-Item $DriverPackage.DriverPackage).Length
+                    $NewDriverCount = $DriverPackage.Drivers.Count
                 }
-
-                # Remove empty folders
-                $script:Logger.Info("Removing empty folders.")
-                Remove-EmptyFolder -Path $PkgPath
-
-                # Update statistics
-                $NewFolderSize = Get-FolderSize -Path $PkgPath
-
-                # Create new archive, if there have been some changes
-                if ((-Not(Test-Path -Path $DriverPackage.DriverPackage)) -or ($OldFolderSize.Dirs -ne $NewFolderSize.Dirs) -or ($OldFolderSize.Files -ne $NewFolderSize.Files) -or ($OldFolderSize.Bytes -ne $NewFolderSize.Bytes)) {
-                    $DriverPackage.DriverPackage = Compress-OSDriverPackage -Path "$PkgPath" -ArchiveType $ArchiveType -Force -RemoveFolder:($Expanded -and (-Not($KeepFolder.IsPresent))) -Passthru
-                }
-
-                $NewArchiveSize = (Get-Item $DriverPackage.DriverPackage).Length
-                $NewDriverCount = $DriverPackage.Drivers.Count
             }
 
             $Result = [PSCustomObject]@{
@@ -260,6 +291,7 @@ Function Clean-OSDriverPackage {
                 OldDriverCount = $OldDriverCount
                 NewDriverCount = $NewDriverCount
                 RemovedDrivers = $RemoveResults
+                RemainingDrivers = $RemainingDrivers
             }
         } else {
             $script:Logger.Info("Compared $($DriverPackage.Drivers.Count) Drivers, none can be removed.")
@@ -272,6 +304,7 @@ Function Clean-OSDriverPackage {
                 OldDriverCount = $OldDriverCount
                 NewDriverCount = $OldDriverCount
                 RemovedDrivers = @()
+                RemainingDrivers = $RemainingDrivers
             }
         }
         $script:Logger.Info(($Result | Out-String))
