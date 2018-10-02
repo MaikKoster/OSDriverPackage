@@ -8,7 +8,7 @@ function Get-TSEnvironment {
     } catch {}
 
     if ($null -ne $TSEnv) {
-        if ($TSEnv.GetVariables.Count -le 1) {
+        if ($TSEnv.GetVariables().Count -le 1) {
             $TSEnv = $Null
         }
     }
