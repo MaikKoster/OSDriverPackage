@@ -31,9 +31,9 @@ function New-OSDriverPackage {
         [string]$Name,
 
         # Specifies the type of archive.
-        # Possible values are CAB or ZIP
-        [ValidateSet('CAB', 'ZIP')]
-        [string]$ArchiveType = 'ZIP',
+        # Possible values are 'cab' or 'zip'
+        [ValidateSet('cab', 'zip')]
+        [string]$ArchiveType = 'zip',
 
         # Specifies generic tag(s) that can be used to further identify the Driver Package.
         [string[]]$Tag = '*',
@@ -89,24 +89,38 @@ function New-OSDriverPackage {
         # This will remove all unreferenced files and empty folders
         [switch]$Clean,
 
-        # Specifies if the new Driver Package should be returned.
-        [switch]$PassThru,
-
         # Specifies, if no Driver Package archive file should be created
         # Usefull for temporary evaluation of the content of Driver Packages
         [switch]$NoArchive
     )
 
     process {
-        $script:Logger.Trace("New driver package ('Path':'$Path', 'Name':'$Name', ArchiveType':'$ArchiveType', 'Tag':'$($Tag -join ',')', 'ExcludeTag':'$($ExcludeTag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'ExcludeOSVersion':'$($ExcludeOSVersion -join ',')', 'Architecture':'$($Architecture -join ',')', 'Make':'$($Make -join ',')', 'ExcludeMake':'$($ExcludeMake -join ',')', 'Model':'$($Model -join ',')', 'ExcludeModel':'$($ExcludeModel -join ',')', 'URL':'$URL', 'SkipPNPDetection':'$SkipPNPDetection', 'Force':'$Force', 'KeepFiles':'$KeepFiles', 'Clean':'$Clean', 'PassThru':'$PassThru', 'NoArchive':'$NoArchive'")
+        $script:Logger.Trace("New driver package ('Path':'$Path', 'Name':'$Name', ArchiveType':'$ArchiveType', 'Tag':'$($Tag -join ',')', 'ExcludeTag':'$($ExcludeTag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'ExcludeOSVersion':'$($ExcludeOSVersion -join ',')', 'Architecture':'$($Architecture -join ',')', 'Make':'$($Make -join ',')', 'ExcludeMake':'$($ExcludeMake -join ',')', 'Model':'$($Model -join ',')', 'ExcludeModel':'$($ExcludeModel -join ',')', 'URL':'$URL', 'SkipPNPDetection':'$SkipPNPDetection', 'Force':'$Force', 'KeepFiles':'$KeepFiles', 'Clean':'$Clean', 'NoArchive':'$NoArchive'")
 
-        $Path = (Get-Item -Path $Path.TrimEnd('\')).FullName
+        $DriverPackagePath = Get-Item -Path $Path.TrimEnd('\')
+        $BasePath = Split-Path -Path $DriverPackagePath.FullName -Parent
+        if ([string]::IsNullOrEmpty($Name)) {
+            $Name = $DriverPackagePath.Basename
+        }
 
-        $script:Logger.Info("Creating new driver package from '$Path'.")
+        $script:Logger.Info("Creating new driver package from '$($DriverPackagePath.Fullname)'.")
 
-        # Create a Definition file first
+        $DriverPackage = [PSCustomObject]@{
+            DefinitionFile = Join-Path -Path $BasePath -ChildPath "$Name.def"
+            Definition = $null
+            Drivers = @()
+            DriverInfoFile = Join-Path -Path $BasePath -ChildPath "$Name.json"
+            DriverPath = $DriverPackagePath.Fullname
+            DriverArchiveFile = Join-Path -Path $BasePath -ChildPath "$Name.$ArchiveType"
+        }
+
+        # Driver Info file
+        $script:Logger.Info("Creating new driver package info file.")
+        Read-OSDriverPackage -DriverPackage $DriverPackage
+
+        # Definition file
         $DefSettings = @{
-            DriverPackagePath = $Path
+            DriverPackagePath = $DriverPackagePath.Fullname
             Name = $Name
             Tag = $Tag
             ExcludeTag = $ExcludeTag
@@ -120,20 +134,10 @@ function New-OSDriverPackage {
             URL = $URL
             WQL = $null
             PNPIDS = $null
-            PassThru = $true
         }
 
         if ($Force.IsPresent) { $DefSettings.Force = $true}
 
-        $DriverPackage = [PSCustomObject]@{
-            DriverPackage = ''
-            DefinitionFile = ''
-            Definition = $null
-            Drivers = @()
-        }
-
-        $script:Logger.Info("Creating new driver package info file.")
-        $DriverPackage.Drivers = Read-OSDriverPackage -Path $Path -Name $Name -Passthru
         if (-Not($SkipPNPDetection.IsPresent)) {
             $PNPIDs = @{}
             $DriverPackage.Drivers | Select-Object -ExpandProperty HardwareIDs |
@@ -150,32 +154,24 @@ function New-OSDriverPackage {
         }
 
         $script:Logger.Info("Creating new driver package definition file.")
-        $DriverPackage.DefinitionFile = New-OSDriverPackageDefinition @DefSettings
-        $DriverPackage.Definition = Get-OSDriverPackageDefinition -Path $DriverPackage.DefinitionFile
+        $DriverPackage.Definition = New-OSDriverPackageDefinition @DefSettings
+        #$DriverPackage.Definition = Read-DefinitionFile -Path $DriverPackage.DefinitionFile
 
+        # Driver Archive
         if ($Clean.IsPresent) {
             # Clean step will take care about compressing files
-            if ([string]::IsNullOrEmpty($Name)) {
-                $DriverPackage.DriverPackage = "$Path.$ArchiveType"
-            } else {
-                $DriverPackage.DriverPackage = "$(Join-Path -Path (Split-Path -Path $Path -Parent) -ChildPath $Name).$ArchiveType"
-            }
-
             $CleanResult = Clean-OSDriverPackage -DriverPackage $DriverPackage -RemoveUnreferencedFiles -KeepFolder:($KeepFiles.IsPresent) -NoArchive:($NoArchive.IsPresent)
-            $DriverPackage.DriverPackage = $CleanResult.DriverPackage
+            $DriverPackage.DriverArchiveFile = $CleanResult.DriverPackage
         } else {
             # Compress files
             if ($NoArchive.IsPresent) {
-                $DriverPackage.DriverPackage = ($DriverPackage.DefinitionFile -replace '.txt', ".$ArchiveType")
+                $DriverPackage.DriverArchiveFile = ($DriverPackage.DefinitionFile -replace '.def', ".$ArchiveType")
             } else {
                 $script:Logger.Info("Compressing driver package source content.")
-                $DriverPackage.DriverPackage = Compress-OSDriverPackage -Path $Path -Name $Name -ArchiveType $ArchiveType -Force:($Force.IsPresent) -RemoveFolder:(-Not($KeepFiles.IsPresent)) -Passthru
+                Compress-OSDriverPackage -DriverPackage $DriverPackage -ArchiveType $ArchiveType -Force:($Force.IsPresent) -RemoveFolder:(-Not($KeepFiles.IsPresent))
             }
         }
 
-        if ($PassThru.IsPresent) {
-            $DriverPackage
-            #Get-OSDriverPackage -Path $DriverPackagePath -ReadDrivers
-        }
+        $DriverPackage
     }
 }
