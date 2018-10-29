@@ -8,10 +8,17 @@ function Get-OSDriverFile {
         Optionally all directories containing these files can be removed.
 
     #>
-    [CmdletBinding(SupportsShouldProcess)]
+    [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName='ByDriverPackage')]
+    [OutputType([object[]])]
     param (
+        # Specifies the Driver Package
+        [Parameter(Mandatory, Position=0, ValueFromPipeline, ParameterSetName='ByDriverPackage')]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({(Test-Path -Path $_.DriverPath) -or (Test-Path -Path $_.DriverArchiveFile)})]
+        [PSCustomObject]$DriverPackage,
+
         # Specifies the path where to search for driver files
-        [Parameter(Mandatory, Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Parameter(Mandatory, Position=0, ValueFromPipelineByPropertyName, ParameterSetName='ByPath')]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({Test-Path $_})]
         [Alias("FullName")]
@@ -19,48 +26,38 @@ function Get-OSDriverFile {
 
         # Specifies the name of the drivers files.
         # The name can include wildcards. Default is '*.inf'
-        [string]$Files = '*.inf',
-
-        # Specifies if the Driver Package should be expanded on the fly.
-        # On default, expand -D will be used to extract a list of file names only.
-        # Only usefull if a Driver Package is specified.
-        [switch]$Expand
+        [string]$Files = '*.inf'
     )
 
     process {
-        $script:Logger.Trace("Get driver files ('Path':'$Path', 'Files':'$Files', 'Expand':'$Expand'")
+        if ($PSCmdlet.ParameterSetName -eq 'ByPath') {
+            $script:Logger.Trace("Get driver files ('Path':'$Path', 'Files':'$Files'")
+        } else {
+            $script:Logger.Trace("Get driver files ('DriverPackage':'$($DriverPackage.DefinitionFile)', 'Files':'$Files'")
+        }
+
+        if ($null -ne $DriverPackage) {
+            if (Test-Path -Path $DriverPackage.DriverPath) {
+                $Path = $DriverPackage.DriverPath
+            } else {
+                $Path = $DriverPackage.DriverArchiveFile
+            }
+        }
+
+        if ($Path -match '\.cab|\.zip') {
+            $script:Logger.Debug('Temporarily expanding content of Driver Package.')
+            $Expanded = $true
+            $Path = Expand-Folder -Path $Path
+        } else {
+            $Expanded = $false
+        }
 
         $script:Logger.Info("Get driver files from '$Path'.")
-        $DriverPackage = Get-Item -Path $Path
-        $DriverFiles = @()
-        if ($DriverPackage.PSIsContainer) {
-            $DriverFiles = Get-ChildItem -Path $Path -Recurse -File -Filter $Files
+        $DriverFiles = @(Get-ChildItem -Path $Path -Recurse -File -Filter $Files)
 
-        } elseif ($DriverPackage.Extension -eq '.cab') {
-            if (Test-Path ($DriverPackage.FullName -replace '.cab', '')) {
-                $DriverFiles = Get-ChildItem -Path ($DriverPackage.FullName -replace '.cab', '') -Recurse -File -Filter $Files
-
-            } elseif ($Expand.IsPresent) {
-                $script:Logger.Debug('Temporarily expanding content of Driver Package.')
-                $ExpandedPath = Expand-OSDriverPackage -Path $Path -Force -PassThru
-
-                $DriverFiles = Get-ChildItem -Path $ExpandedPath -Recurse -File -Filter $Files
-
-                $script:Logger.Debug('Removing temporary content.')
-                Remove-Item -Path $ExpandedPath -Recurse -Force
-            } else {
-                $script:Logger.Debug('Reading files from Driver Package.')
-                $Output = EXPAND -D "$Path" -F:"$Files"
-                #TODO: get someone with better Regex skills. Need to skip ': ' from the negative lookahead
-                switch -Regex ($Output) {
-                    "\:(?:.(?!\: ))+$" {
-                        $DriverFiles += $($Matches[0]).Trim(':').Trim()
-                    }
-                }
-
-                #Remove duplicates, as we don't have a path
-                $DriverFiles = $DriverFiles | Select-Object -Unique
-            }
+        if ($Expanded) {
+            $script:Logger.Debug('Removing temporary content.')
+            Remove-Item -Path $Path -Recurse -Force
         }
 
         $DriverFiles
