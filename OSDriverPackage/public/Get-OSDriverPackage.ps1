@@ -10,8 +10,8 @@ function Get-OSDriverPackage {
         Multiple values for the same criteria will be treated as OR.
 
     .NOTES
-        A Driver Package is defined by the Driver Package Definition file ({DriverPackageName}.txt). To allow for
-        a performant selection process, only txt files with an 'OSDriverPackage' section will be treated as valid Driver Packages
+        A Driver Package is defined by the Driver Package Definition file ({DriverPackageName}.def). To allow for
+        a performant selection process, only def files with an 'OSDriverPackage' section will be treated as valid Driver Packages
     #>
     [CmdletBinding()]
     param (
@@ -93,33 +93,33 @@ function Get-OSDriverPackage {
 
         if ($Root.PSIsContainer) {
             $script:Logger.Debug('Path supplied. Check if there is a driver package definition file with the same name.')
-            if (Test-Path "$($Root.FullName).txt") {
-                $Root = Get-Item -Path "$($Root.FullName).txt"
+            if (Test-Path "$($Root.FullName).def") {
+                $Root = Get-Item -Path "$($Root.FullName).def"
             }
         } elseif (($Root.Extension -eq '.cab') -or ($Root.Extension -eq '.zip')){
             $script:Logger.Debug('Driver package file supplied. Using driver package definition file name.')
             if (Test-Path ($Root.FullName -replace '.cab', '.txt')) {
-                $Root = Get-Item ($Root.FullName -replace '.cab', '.txt')
-            } elseif (Test-Path ($Root.FullName -replace '.zip', '.txt')) {
-                $Root = Get-Item ($Root.FullName -replace '.zip', '.txt')
+                $Root = Get-Item ($Root.FullName -replace '.cab', '.def')
+            } elseif (Test-Path ($Root.FullName -replace '.zip', '.def')) {
+                $Root = Get-Item ($Root.FullName -replace '.zip', '.def')
             }
         }
 
-        if ($Root.Extension -eq '.txt') {
-            $script:Logger.Info("Get driver package '$($Root.Name -replace '.txt', '')' at '$($Root.Directory.FullName)'.")
+        if ($Root.Extension -eq '.def') {
+            $script:Logger.Info("Get driver package '$($Root.Name -replace '.def', '')' at '$($Root.Directory.FullName)'.")
 
             $DefinitionFileName = $Root.FullName
-            $InfoFileName = $DefinitionFileName -replace '.txt', '.json'
+            $InfoFileName = $DefinitionFileName -replace '.def', '.json'
 
-            if (Test-Path -Path ($DefinitionFileName -replace '.txt', '.zip')) {
-                $DriverPackageFilename = ($DefinitionFileName -replace '.txt', '.zip')
-            } elseif (Test-Path -Path ($DefinitionFileName -replace '.txt', '.cab')) {
-                $DriverPackageFilename = ($DefinitionFileName -replace '.txt', '.cab')
+            if (Test-Path -Path ($DefinitionFileName -replace '.def', '.zip')) {
+                $DriverPackageFilename = ($DefinitionFileName -replace '.def', '.zip')
+            } elseif (Test-Path -Path ($DefinitionFileName -replace '.def', '.cab')) {
+                $DriverPackageFilename = ($DefinitionFileName -replace '.def', '.cab')
             } else {
                 # No archive found with the Driver Package name.
                 # Need to check definition
                 #$DriverPackageFilename = [string]::Empty
-                $DriverPackageFilename = ($DefinitionFileName -replace '.txt', '.zip')
+                $DriverPackageFilename = ($DefinitionFileName -replace '.def', '.zip')
             }
 
             if (Test-Path $DefinitionFileName) {
@@ -127,10 +127,10 @@ function Get-OSDriverPackage {
             } else {
                 $script:Logger.Warn("No definition file for driver package '$($Root.Name)' found.")
 
-                if (Test-Path -Path ($DefinitionFileName -replace '.txt', '.zip')) {
-                    New-OSDriverPackageDefinition -DriverPackagePath ($DefinitionFileName -replace '.txt', '.zip')
-                } elseif (Test-Path -Path ($DefinitionFileName -replace '.txt', '.cab')) {
-                    New-OSDriverPackageDefinition -DriverPackagePath ($DefinitionFileName -replace '.txt', '.cab')
+                if (Test-Path -Path ($DefinitionFileName -replace '.def', '.zip')) {
+                    New-OSDriverPackageDefinition -DriverPackagePath ($DefinitionFileName -replace '.def', '.zip')
+                } elseif (Test-Path -Path ($DefinitionFileName -replace '.def', '.cab')) {
+                    New-OSDriverPackageDefinition -DriverPackagePath ($DefinitionFileName -replace '.def', '.cab')
                 }
 
                 if (Test-Path $DefinitionFileName) {
@@ -177,7 +177,7 @@ function Get-OSDriverPackage {
                     # Create default Driver Package name if not found
                     # Might happen when evaluating the definition files only from the exported Driver Packages
                     if ([string]::IsNullOrEmpty($DriverPackageFilename)) {
-                        $DriverPackageFilename = ($DefinitionFileName -replace '.txt', '.zip')
+                        $DriverPackageFilename = ($DefinitionFileName -replace '.def', '.zip')
                     }
                 } else {
                     $script:Logger.Warn("Invalid definition file for driver package '$($Root.Name)'. Skipping driver package.")
@@ -244,6 +244,8 @@ function Get-OSDriverPackage {
                     DriverPackage = $DriverPackageFilename
                     DefinitionFile = $DefinitionFileName
                     Definition = $Definition
+                    DriverArchiveFile = $DriverPackageFilename
+                    DriverPath = ($DriverPackageFilename -replace '.zip|.cab', '')
                     Drivers = @()
                 }
 
@@ -262,7 +264,7 @@ function Get-OSDriverPackage {
                     # Create Task Sequence variable to allow dynamic assignment of Driver Package
                     $DPID = $Definition['OSDriverPackage']['ID']
                     $script:Logger.Info("Adding Driver Package ID '$ID' to list of Task Sequence variables.")
-                    $TSEnvirnment.Value("$DPID") = 'Install'
+                    $TSEnvironment.Value("$DPID") = 'Install'
                 }
 
                 $DriverPackage
@@ -274,7 +276,7 @@ function Get-OSDriverPackage {
 
             $GetParams = @{
                 Path = $Path
-                Include = @('*.txt')
+                Include = @('*.def')
                 Recurse = $true
                 File = $true
             }
