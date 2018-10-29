@@ -44,9 +44,9 @@ function Get-FolderSize {
                 }
                 $script:Logger.Debug("Directories: $Dirs, Files: $Files, Size: $Size.")
                 [PSCustomObject]@{
-                    Dirs = $Dirs
-                    Files = $Files
-                    Bytes = $Bytes
+                    Dirs = [int64]$Dirs
+                    Files = [int64]$Files
+                    Bytes = [int64]$Bytes
                 }
         }catch{$null}
     }
