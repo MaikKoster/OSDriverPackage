@@ -9,13 +9,20 @@ function Expand-OSDriverPackage {
     .NOTES
 
     #>
-    [CmdletBinding(SupportsShouldProcess)]
+    [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName='ByDriverPackage')]
     param (
-        # Specifies the name and path of Driver Package that should be expanded.
-        [Parameter(Mandatory, Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        # Specifies the Driver Package
+        [Parameter(Mandatory, Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName='ByDriverPackage')]
         [ValidateNotNullOrEmpty()]
+        [ValidateScript({Test-Path -Path $_.DriverArchiveFile})]
+        [PSCustomObject]$DriverPackage,
+
+        # Specifies the name and path of Driver Package that should be expanded.
+        [Parameter(Mandatory, Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName='ByPath')]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({Test-Path -Path $_})]
         [Alias("FullName")]
-        [string[]]$Path,
+        [string]$Path,
 
         # Specifies the Path to which the Driver Package should be expanded.
         # On default, a subfolder with the same name as the Driver Package will be used.
@@ -28,55 +35,77 @@ function Expand-OSDriverPackage {
         # Specifies if the archive file should be deleted after it has been expanded.
         [switch]$RemoveArchive,
 
-        # Specifies, if the name and path of the expanded folder should be returned.
-        [switch]$Passthru
+        # Specifies if the updated Driver Package object should be returned.
+        # Shouldn't be necessary, if the Driver Package was supplied as an object
+        [switch]$PassThru,
+
+        # Specifies if the specified archive should be expanded only, without handling it as a full
+        # Driver package. Usefull when temporarily expanding e.g. Dell Family packages for further
+        # evaluation. Just wraps the proper handling for cab and zip files.
+        [Parameter(ParameterSetName='ByPath')]
+        [switch]$ExpandOnly
     )
 
-    begin {
-        if (-Not([string]::IsNullOrEmpty($DestinationPath))) {
-            $ArchiveDestinationPath = $DestinationPath
-        }
-    }
-
     process {
-        foreach ($Archive in $Path){
-            $script:Logger.Trace("Expand driver package ('Path':'$Path', 'DestinationPath':'$DestinationPath', 'Force':'$Force', 'RemoveArchive':'$RemoveArchive, 'PassThru':'$PassThru'")
+        if ($PSCmdlet.ParameterSetName -eq 'ByPath') {
+            $script:Logger.Trace("Expand driver package ('Path':'$Path', 'DestinationPath':'$DestinationPath', 'Force':'$Force', 'RemoveArchive':'$RemoveArchive")
+        } else {
+            $script:Logger.Trace("Expand driver package ('DriverPackage':'$($DriverPackage.DefinitionFile)', 'DestinationPath':'$DestinationPath', 'Force':'$Force', 'RemoveArchive':'$RemoveArchive")
+        }
 
-            $ArchiveName = (Get-Item $Archive).BaseName
-            $ArchivePath = (Get-Item $Archive).FullName.TrimEnd('\')
-            if ([string]::IsNullOrEmpty($DestinationPath)) {
-                $ArchiveDestinationPath = Split-Path $ArchivePath -Parent
+        if ($ExpandOnly.IsPresent -and ($Path -match '\.zip|\.cab')) {
+            $ExpandArgs = @{
+                Path = $Path
+                Destination = ($Path -replace '.zip|.cab', '')
+                Force = $Force.IsPresent
             }
-            $ArchiveDestination = Join-Path -Path $ArchiveDestinationPath -ChildPath $ArchiveName
-            $script:Logger.Info("Expanding driver package '$Archive' to '$ArchiveDestination'.")
-            if (Test-Path $ArchiveDestination) {
-                if (-not($Force.IsPresent)) {
-                    $script:Logger.Error("Archive destination '$ArchiveDestination' exists already and '-Force' is not specified.")
-                    throw "Archive destination '$ArchiveDestination' exists already and '-Force' is not specified."
+        } else {
+            # Get Driver Package if necessary
+            if ($null -eq $DriverPackage) {
+                $DriverPackage = Get-OSDriverPackage -Path $Path
+            }
+
+            # Ensure Driver Package has been properly loaded
+            if ($null -ne $DriverPackage) {
+                if (-Not([string]::IsNullOrWhiteSpace($DriverPackage.DriverArchiveFile))) {
+                    $DriverArchiveFile = Get-Item -Path $DriverPackage.DriverArchiveFile
+                }
+
+                if ($null -ne $DriverArchiveFile) {
+                    if (-Not([string]::IsNullOrEmpty($DestinationPath))) {
+                        $DriverPackage.DriverPath = $DestinationPath
+                    }
+
+                    if ([string]::IsNullOrEmpty($DriverPackage.DriverPath)) {
+                        $DriverPackage.DriverPath = ($DriverPackage.DriverArchiveFile -replace '.zip|.cab', '')
+                    }
+
+                    $ExpandArgs = @{
+                        Path = $DriverArchiveFile.FullName
+                        Destination = $DriverPackage.DriverPath
+                        Force = $Force.IsPresent
+                    }
+                } else {
+                    $script:Logger.Error("Failed to get driver archive '$($DriverPackage.DriverArchiveFile)'.")
+                    throw "Failed to get driver archive '$($DriverPackage.DriverArchiveFile)'."
                 }
             } else {
-                if ($PSCmdlet.ShouldProcess("Creating folder '$ArchiveDestination'.")) {
-                    $null = New-Item -Path $ArchiveDestinationPath -Name $ArchiveName -ItemType Directory
+                $script:Logger.Error("Failed to get driver package. '$Path'.")
+                throw "Failed to get driver package '$Path'."
+            }
+        }
+
+        if ($null -ne $ExpandArgs) {
+            $DestinationPath = Expand-Folder @ExpandArgs
+
+            if ( (-Not([string]::IsNullOrEmpty($DestinationPath))) -and $RemoveArchive.IsPresent) {
+                if ($PSCmdlet.ShouldProcess("Removing archive '$($ExpandArgs.Path)'.")) {
+                    Remove-Item -Path ($ExpandArgs.Path) -Force
                 }
             }
 
-            if ($PSCmdlet.ShouldProcess("Extracting files to '$ArchivePath' to '$ArchiveDestination'.")) {
-                if ((Get-Item $Archive).Extension -eq ".zip") {
-                    Add-Type -assembly 'System.IO.Compression.Filesystem'
-                    [IO.Compression.ZipFile]::ExtractToDirectory($ArchivePath, $ArchiveDestination)
-                } else {
-                    $null = EXPAND "$ArchivePath" -F:* "$ArchiveDestination"
-                }
-            }
-
-            if ($RemoveArchive.IsPresent) {
-                if ($PSCmdlet.ShouldProcess("Removing archive '$ArchivePath'.")) {
-                    Remove-Item -Path $ArchivePath -Force
-                }
-            }
-
-            if ($Passthru.IsPresent) {
-                $ArchiveDestination
+            if (($null -ne $DriverPackage) -and ($PassThru.IsPresent)) {
+                $DriverPackage
             }
         }
     }
