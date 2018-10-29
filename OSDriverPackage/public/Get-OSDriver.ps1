@@ -31,7 +31,6 @@ function Get-OSDriver {
             # Fall back to Get-WindowsDriver if something fails.
             try {
                 $Result = Get-OSDriverInf -Path $Path
-                }
             } catch {
                 $script:Logger.Error("Exception while calling 'Get-OSDriverInf'")
                 $script:Logger.Error("$($_.ToString())")
@@ -47,7 +46,7 @@ function Get-OSDriver {
                         # Get SourceDiskFiles
                         $DriverSourceFiles = Get-DriverSourceDiskFile -Path $Path.ToString() -Verbose:$false
                         $Result = [PSCustomObject]@{
-                            DriverFile = $Path #($DriverFile.FullName)
+                            DriverFile = $Driver.FullName
                             CatalogFile = ($First.CatalogFile)
                             ClassName = ($First.ClassName)
                             ClassGuid = ($First.ClassGuid)
@@ -71,6 +70,7 @@ function Get-OSDriver {
                                 }
                                 $HardwareID
                             } | Group-Object  HardwareID, Architecture | ForEach-Object {$_.Group | Select-Object -First 1} | Sort-Object HardwareID)
+                        }
                     }
                 } catch {
                     $script:Logger.Error("Exception while calling 'Get-WindowsDriver -Online -Driver ""$Path""")
