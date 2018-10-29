@@ -1,25 +1,31 @@
 function Compress-OSDriverPackage {
     <#
     .SYNOPSIS
-        Compresses the specified Driver Package into a cab file.
+        Compresses the specified Driver Package into a zip/cab file.
 
     .DESCRIPTION
-        Compresses the specified Driver Package into a cab file.
+        Compresses the specified Driver Package into a zip/cab file.
 
     .NOTES
 
     #>
-    [CmdletBinding(SupportsShouldProcess)]
+    [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName="ByDriverPackage")]
     param (
-        # Specifies the name and path of Driver Package that should be compressed.
-        [Parameter(Mandatory, Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        # Specifies the Driver Package, that should be compressed.
+        [Parameter(Mandatory, ParameterSetName='ByDriverPackage', ValueFromPipeline)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({((Test-Path $_) -and ((Get-Item $_).PSIsContainer))})]
+        [ValidateScript({Test-Path -Path $_.DriverPath})]
+        [PSCustomObject]$DriverPackage,
+
+        # Specifies the name and path of Driver Package that should be compressed.
+        [Parameter(Mandatory, Position=0, ValueFromPipelineByPropertyName, ParameterSetName='ByPath')]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({((Test-Path $_) -and ($_ -like '*.def'))})]
         [Alias("FullName")]
         [string]$Path,
 
-        # Specifies the (new) Name of the Driver Package.
-        # On Default, the name of the folder that contains the Driver Package content will be used.
+        # Specifies the (new) Name of the Driver archive.
+        # On Default, the name of the folder that contains the drivers will be used.
         [string]$Name,
 
         # Specifies the type of archive.
@@ -38,12 +44,22 @@ function Compress-OSDriverPackage {
     )
 
     process {
-        $script:Logger.Trace("compress driver package ('Path':'$Path', 'Name':'$Name', ArchiveType':'$ArchiveType', 'Force':'$Force', 'RemoveFolder':'$RemoveFolder', 'Passthru':'$Passthru'")
-        $script:Logger.Info("Compressing driver package '$Path'.")
+        if ($PSCmdlet.ParameterSetName -eq 'ByPath') {
+            $script:Logger.Trace("Compress driver package ('Path':'$Path', 'Name':'$Name', 'ArchiveType':'$ArchiveType', 'Force':'$Force', 'RemoveFolder':'$RemoveFolder, 'Passthru':'$Passthru'")
+        } else {
+            $script:Logger.Trace("Compress driver package ('DriverPackage':'$($DriverPackage.DefinitionFile)', 'Name':'$Name', 'ArchiveType':'$ArchiveType', 'Force':'$Force', 'RemoveFolder':'$RemoveFolder, 'Passthru':'$Passthru'")
+        }
+
+        # Get Driver Package
+        if ($null -eq $DriverPackage) {
+            $DriverPackage = Get-OSDriverPackage -Path $Path
+        }
+
+        $script:Logger.Info("Compressing driver package '$($DriverPackage.DriverPath)'.")
 
         # CAB only supports <2GB
         if ($ArchiveType -eq 'CAB'){
-            $FolderSize  = Get-FolderSize -Path $Path
+            $FolderSize  = Get-FolderSize -Path ($DriverPackage.DriverPath)
             if ($FolderSize.Bytes -ge 2GB) {
                 $script:Logger.Info("Driver package contains more than 2GB of data. Switching ArchiveType to zip.")
                 $ArchiveType = 'ZIP'
@@ -51,9 +67,9 @@ function Compress-OSDriverPackage {
         }
 
         if ([string]::IsNullOrEmpty($Name)) {
-            $ArchiveFilename = "$Path.$ArchiveType"
+            $ArchiveFilename = "$($DriverPackage.DriverPath).$ArchiveType"
         } else {
-            $ArchiveFilename = Join-Path -Path (Split-Path -Path $Path -Parent) -ChildPath "$Name.$ArchiveType"
+            $ArchiveFilename = Join-Path -Path (Split-Path -Path ($DriverPackage.DriverPath) -Parent) -ChildPath "$Name.$ArchiveType"
         }
 
         if ((Test-Path -Path $ArchiveFilename) -and (-Not($Force.IsPresent))) {
@@ -61,17 +77,25 @@ function Compress-OSDriverPackage {
             throw "Archive '$ArchiveFilename' exists already and '-Force' is not specified."
         }
 
-        $ArchivePath = Compress-Folder -Path $Path -Name $Name -ArchiveType $ArchiveType -HighCompression -PassThru -Verbose:$false
+        $DriverPackage.DriverArchiveFile = Compress-Folder -Path $DriverPackage.DriverPath -Destination $ArchiveFilename -ArchiveType $ArchiveType -HighCompression -PassThru -Verbose:$false
 
         if ($RemoveFolder.IsPresent) {
-            if ($PSCmdlet.ShouldProcess("Removing folder '$Path'.")) {
-                $script:Logger.Info("Removing folder '$Path'.")
-                $null = Remove-Item -Path $Path -Recurse -Force
+            # Only remove if archive has been created successfully
+            if ((-Not([string]::IsNullOrWhiteSpace($DriverPackage.DriverArchiveFile))) -and (Test-Path -Path ($DriverPackage.DriverArchiveFile))) {
+                if ($PSCmdlet.ShouldProcess("Removing folder '$($DriverPackage.DriverPath)'.")) {
+                    # Need to make sure that the path supplied is not $null, otherwise it will delete from the current path.
+                    if (-Not([string]::IsNullOrWhiteSpace($DriverPackage.DriverPath))) {
+                        $script:Logger.Info("Removing folder '$($DriverPackage.DriverPath)'.")
+                        $null = Remove-Item -Path ($DriverPackage.DriverPath) -Recurse -Force
+                    }
+                }
+            } else {
+                $script:Logger.Warn("Archive '$ArchiveFilename' has not been created successfully. Skipping removal of '$($DriverPackage.DriverPath)'.")
             }
         }
 
         if ($Passthru.IsPresent) {
-            $ArchivePath
+            $DriverPackage
         }
     }
 }
