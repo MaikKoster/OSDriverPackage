@@ -86,10 +86,7 @@ function New-OSDriverPackageDefinition {
         [System.Collections.Specialized.OrderedDictionary]$Definition,
 
         # Specifies if an existing Driver Package Definition file should be overwritten.
-        [switch]$Force,
-
-        # Specifies if the name and path to the new Driver Package Definition file should be returned.
-        [switch]$PassThru
+        [switch]$Force
     )
 
     process {
@@ -105,15 +102,15 @@ function New-OSDriverPackageDefinition {
             $DriverPackage = Get-Item $DriverPackagePath
 
             if ([string]::IsNullOrEmpty($Name)) {
-                if ($DriverPackage.Extension -eq 'txt') {
+                if ($DriverPackage.Extension -eq 'def') {
                     $FileName = $DriverPackage
                 }elseif (($DriverPackage.Extension -eq '.cab') -or ($DriverPackage.Extension -eq '.zip')) {
-                    $FileName = "$($DriverPackage.FullName -replace "$($DriverPackage.Extension)", '').txt"
+                    $FileName = "$($DriverPackage.FullName -replace "$($DriverPackage.Extension)", '').def"
                 } else {
-                    $FileName = "$($DriverPackage.FullName).txt"
+                    $FileName = "$($DriverPackage.FullName).def"
                 }
             } else {
-                $FileName = Join-Path -Path ($DriverPackage.Parent.FullName) -ChildPath "$($Name -replace '.txt' ,'').txt"
+                $FileName = Join-Path -Path ($DriverPackage.Parent.FullName) -ChildPath "$($Name -replace '.def' ,'').def"
             }
         }
 
@@ -226,12 +223,12 @@ function New-OSDriverPackageDefinition {
             $NewDefinition = $Definition
         }
 
-        if (-Not(Test-Path $FileName) ) {
+        if (-Not(Test-Path -Path $FileName) ) {
             if ($PSCmdlet.ShouldProcess("Saving driver package definition file '$FileName'.")) {
                 $script:Logger.Debug("Saving driver package definition file '$FileName'.")
                 Write-DefinitionFile -Definition $NewDefinition -Path $FileName
             }
-        } elseif ((Test-Path $FileName) -and ($Force.IsPresent)) {
+        } elseif ((Test-Path -Path $FileName) -and ($Force.IsPresent)) {
             if ($PSCmdlet.ShouldProcess("Overwriting existing driver package definition file '$FileName'.")) {
                 $script:Logger.Debug("Overwriting existing driver package definition file '$FileName'.")
                 Write-DefinitionFile -Definition $NewDefinition -Path $FileName
@@ -241,8 +238,6 @@ function New-OSDriverPackageDefinition {
             throw "Driver package definition file '$Filename' exists and '-Force' is not specified."
         }
 
-        if ($PassThru.IsPresent) {
-            $FileName
-        }
+        Read-DefinitionFile -Path $FileName
     }
 }

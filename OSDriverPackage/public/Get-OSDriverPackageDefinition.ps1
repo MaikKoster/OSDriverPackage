@@ -15,7 +15,7 @@ function Get-OSDriverPackageDefinition {
         # Specifies the name and path to the Driver Package Definition file.
         [Parameter(Mandatory, Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({(Test-Path $_) -and ((Get-Item $_).Extension -eq '.txt')})]
+        [ValidateScript({(Test-Path $_) -and ((Get-Item $_).Extension -eq '.def')})]
         [Alias("FullName")]
         [string]$Path
     )

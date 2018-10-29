@@ -98,22 +98,22 @@ function Copy-OSDriverPackage {
                 $DefinitionFile = $DrvPkg.DefinitionFile
                 if (-Not(Test-Path $DefinitionFile)) {
                     $script:Logger.Warn("Definition File '$DefinitionFile' is missing. Creating stub file.")
-                    New-OSDriverPackageDefinition -DriverPackagePath $DriverPackageName
+                    $null = New-OSDriverPackageDefinition -DriverPackagePath $DriverPackageName
                 }
                 $script:Logger.Info("Copying definition file '$DefinitionFile' to '$Destination'.")
                 Copy-Item @CopyArgs -Path $DefinitionFile
 
                 if ($All.IsPresent) {
                     # Info File
-                    $InfoFile = ($DrvPkg.DriverPackage -replace '.cab|.zip|.txt', '.json')
+                    $InfoFile = ($DrvPkg.DriverPackage -replace '.cab|.zip|.def', '.json')
                     $script:Logger.Info("Copying driver info file '$InfoFile' to '$Destination'.")
                     Copy-Item @CopyArgs -Path $InfoFile
 
                     # Archive content
-                    $ExpandedContent = ($DrvPkg.DriverPackage -replace '.cab|.zip|.txt', '')
+                    $ExpandedContent = ($DrvPkg.DriverPackage -replace '.cab|.zip|.def', '')
                     if (Test-Path -Path $ExpandedContent) {
                         $script:Logger.Info("Copying Driver contentfrom '$ExpandedContent' to '$Destination'.")
-                        Copy-Item @CopyArgs -Path $ExpandedContent
+                        Copy-Item @CopyArgs -Path $ExpandedContent -Recurse
                     }
                 }
             } else {

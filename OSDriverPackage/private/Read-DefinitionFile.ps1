@@ -14,7 +14,8 @@ function Read-DefinitionFile {
         # Specifies the name and path to the Driver Package Definition file.
         [Parameter(Mandatory, Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({Test-Path $_})]
+        [ValidateScript({(Test-Path $_) -and ((Get-Item $_).Extension -eq '.def')})]
+        [Alias("DefinitionFile")]
         [Alias("FullName")]
         [string]$Path
     )
