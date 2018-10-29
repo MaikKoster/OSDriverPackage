@@ -61,8 +61,8 @@ Function Compare-OSDriver {
         $CorePnPIDsx86 = @{}
         $CorePnPIDsx64 = @{}
         if ($PackageHardwareIDs.Count -gt 0) {
-            $PackageHardwareIDs | Where-Object {$_.Architecture -eq 'x86'} | Select-Object -ExpandProperty HardwareID | Get-CompatibleID | ForEach-Object {$CorePnPIDsx86[$_]=$null}
-            $PackageHardwareIDs | Where-Object {$_.Architecture -eq 'x64'} | Select-Object -ExpandProperty HardwareID | Get-CompatibleID | ForEach-Object {$CorePnPIDsx64[$_]=$null}
+            $PackageHardwareIDs | Where-Object {$_.Architecture -eq 'x86'} | Select-Object -ExpandProperty HardwareID | Get-OSDriverCompatibleID | ForEach-Object {$CorePnPIDsx86[$_]=$null}
+            $PackageHardwareIDs | Where-Object {$_.Architecture -eq 'x64'} | Select-Object -ExpandProperty HardwareID | Get-OSDriverCompatibleID | ForEach-Object {$CorePnPIDsx64[$_]=$null}
         }
 
         $CriticalPnPIDs = @{}
@@ -72,7 +72,7 @@ Function Compare-OSDriver {
     }
 
     process {
-        $script:Logger.Trace("compare driver ('Driver':'$($Driver | ConvertTo-Json -Depth 1)', 'CoreDriver':'$($CoreDriver | ConvertTo-Json -Depth 1)'")
+        $script:Logger.Trace("Compare driver ('Driver':'$($Driver | ConvertTo-Json -Depth 1)', 'CoreDriver':'$($CoreDriver | ConvertTo-Json -Depth 1)'")
 
         $Replace = $false
 
@@ -97,8 +97,8 @@ Function Compare-OSDriver {
                 $script:Logger.Debug("Core Version: $CoreVersion")
 
                 # Add Core Driver IDs.
-                $CoreDriver.HardwareIDs | Where-Object {$_.Architecture -eq 'x86'} | Select-Object -ExpandProperty HardwareID | Get-CompatibleID | ForEach-Object {$CorePnPIDsx86[$_]=$null}
-                $CoreDriver.HardwareIDs | Where-Object {$_.Architecture -eq 'x64'} | Select-Object -ExpandProperty HardwareID | Get-CompatibleID | ForEach-Object {$CorePnPIDsx64[$_]=$null}
+                $CoreDriver.HardwareIDs | Where-Object {$_.Architecture -eq 'x86'} | Select-Object -ExpandProperty HardwareID | Get-OSDriverCompatibleID | ForEach-Object {$CorePnPIDsx86[$_]=$null}
+                $CoreDriver.HardwareIDs | Where-Object {$_.Architecture -eq 'x64'} | Select-Object -ExpandProperty HardwareID | Get-OSDriverCompatibleID | ForEach-Object {$CorePnPIDsx64[$_]=$null}
 
 
                 if ($null -eq $Driver.DriverFile) {
@@ -139,7 +139,7 @@ Function Compare-OSDriver {
                                     $script:Logger.Debug("HardwareID '$HardwareID' is not supported by core driver but is defined as non-critical.")
                                 } else {
                                     # Get compatible Hardware IDs
-                                    $CompatibleIDs = Get-CompatibleID -HardwareID $HardwareID
+                                    $CompatibleIDs = Get-OSDriverCompatibleID -HardwareID $HardwareID
 
                                     foreach ($CompatibleID In $CompatibleIDs) {
                                         if ((($_.Architecture -eq 'x64') -and ($CorePNPIDSx64.ContainsKey($CompatibleID))) -or (($_.Architecture -eq 'x86') -and($CorePNPIDSx86.ContainsKey($CompatibleID)))) {
