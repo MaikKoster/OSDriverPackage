@@ -8,14 +8,14 @@ $ModuleName = 'OSDriverPackage'
 #}
 
 InModuleScope "$ModuleName" {
-    Describe 'Move-OSDriverPackage' {
+    Describe 'Copy-OSDriverPackage' {
         $TestDriverSource = Get-Item -Path "$root\tests\Drivers\3T8M8"
-        $TargetPath = Join-Path -Path $TestDrive -ChildPath 'MoveTarget'
+        $TargetPath = Join-Path -Path $TestDrive -ChildPath 'CopyTarget'
 
         It 'Fails on missing data' {
-            {Move-OSDriverPackage -Path ''} | Should Throw
-            {Move-OSDriverPackage -Path $null} | Should Throw
-            {Move-OSDriverPackage -DriverPackage $null} | Should Throw
+            {Copy-OSDriverPackage -Path ''} | Should Throw
+            {Copy-OSDriverPackage -Path $null} | Should Throw
+            {Copy-OSDriverPackage -DriverPackage $null} | Should Throw
         }
 
         BeforeEach {
@@ -23,40 +23,18 @@ InModuleScope "$ModuleName" {
             New-Item -Path $TargetPath -ItemType Directory -Force
         }
 
-        It 'Moves a Driver Package' {
-            $OldDriverPackage = New-OSDriverPackage -Path "$TestDrive\$($TestDriverSource.BaseName)" -NoArchive
-
-            $NewDriverPackage = Move-OSDriverPackage -DriverPackage $OldDriverPackage -Destination $TargetPath -PassThru
-
-            $NewDriverPackage.DefinitionFile | Should BeLike "$TargetPath*.def"
-            Test-Path -Path $NewDriverPackage.DefinitionFile | Should Be $true
-            Test-Path -Path $OldDriverPackage.DefinitionFile | Should Be $false
-
-            $NewDriverPackage.DriverArchiveFile | Should BeLike "$TargetPath*.zip"
-            Test-Path -Path $NewDriverPackage.DriverArchiveFile | Should Be $false
-            Test-Path -Path $OldDriverPackage.DriverArchiveFile | Should Be $false
-
-            $NewDriverPackage.DriverInfoFile | Should BeLike "$TargetPath*.json"
-            Test-Path -Path $NewDriverPackage.DriverInfoFile | Should Be $true
-            Test-Path -Path $OldDriverPackage.DriverInfoFile | Should Be $false
-
-            $NewDriverPackage.DriverPath | Should BeLike "$TargetPath*"
-            Test-Path -Path $NewDriverPackage.DriverPath | Should Be $true
-            Test-Path -Path $OldDriverPackage.DriverPath | Should Be $false
-        }
-
-        It 'Moves OSD related files only' {
+        It 'Copies a Driver Package' {
             $OldDriverPackage = New-OSDriverPackage -Path "$TestDrive\$($TestDriverSource.BaseName)" -KeepFiles
 
-            $NewDriverPackage = Move-OSDriverPackage -DriverPackage $OldDriverPackage -Destination $TargetPath -PassThru -OSD
+            $NewDriverPackage = Copy-OSDriverPackage -DriverPackage $OldDriverPackage -Destination $TargetPath -PassThru
 
             $NewDriverPackage.DefinitionFile | Should BeLike "$TargetPath*.def"
             Test-Path -Path $NewDriverPackage.DefinitionFile | Should Be $true
-            Test-Path -Path $OldDriverPackage.DefinitionFile | Should Be $false
+            Test-Path -Path $OldDriverPackage.DefinitionFile | Should Be $true
 
             $NewDriverPackage.DriverArchiveFile | Should BeLike "$TargetPath*.zip"
             Test-Path -Path $NewDriverPackage.DriverArchiveFile | Should Be $true
-            Test-Path -Path $OldDriverPackage.DriverArchiveFile | Should Be $false
+            Test-Path -Path $OldDriverPackage.DriverArchiveFile | Should Be $true
 
             $NewDriverPackage.DriverInfoFile | Should BeLike "$TargetPath*.json"
             Test-Path -Path $NewDriverPackage.DriverInfoFile | Should Be $false
@@ -67,13 +45,35 @@ InModuleScope "$ModuleName" {
             Test-Path -Path $OldDriverPackage.DriverPath | Should Be $true
         }
 
+        It 'Copys OSD related files only' {
+            $OldDriverPackage = New-OSDriverPackage -Path "$TestDrive\$($TestDriverSource.BaseName)" -NoArchive
+
+            $NewDriverPackage = Copy-OSDriverPackage -DriverPackage $OldDriverPackage -Destination $TargetPath -PassThru -All
+
+            $NewDriverPackage.DefinitionFile | Should BeLike "$TargetPath*.def"
+            Test-Path -Path $NewDriverPackage.DefinitionFile | Should Be $true
+            Test-Path -Path $OldDriverPackage.DefinitionFile | Should Be $true
+
+            $NewDriverPackage.DriverArchiveFile | Should BeLike "$TargetPath*.zip"
+            Test-Path -Path $NewDriverPackage.DriverArchiveFile | Should Be $false
+            Test-Path -Path $OldDriverPackage.DriverArchiveFile | Should Be $false
+
+            $NewDriverPackage.DriverInfoFile | Should BeLike "$TargetPath*.json"
+            Test-Path -Path $NewDriverPackage.DriverInfoFile | Should Be $true
+            Test-Path -Path $OldDriverPackage.DriverInfoFile | Should Be $true
+
+            $NewDriverPackage.DriverPath | Should BeLike "$TargetPath*"
+            Test-Path -Path $NewDriverPackage.DriverPath | Should Be $true
+            Test-Path -Path $OldDriverPackage.DriverPath | Should Be $true
+        }
+
         It 'Does not overwrite existing files on default' {
             $OldDriverPackage = New-OSDriverPackage -Path "$TestDrive\$($TestDriverSource.BaseName)"
             $TestInfoFilePath = Join-Path -Path $TargetPath -ChildPath (Split-Path -Path $OldDriverPackage.DriverInfoFile -Leaf)
             'Just some test content' | Set-Content -Path $TestInfoFilePath -Force
             $OldSize = (Get-Item -Path $TestInfoFilePath).Length
 
-            $NewDriverPackage = Move-OSDriverPackage -DriverPackage $OldDriverPackage -Destination $TargetPath -PassThru -ErrorAction SilentlyContinue
+            $NewDriverPackage = Copy-OSDriverPackage -DriverPackage $OldDriverPackage -Destination $TargetPath -PassThru -ErrorAction SilentlyContinue -All
             $NewSize = (Get-Item -Path $TestInfoFilePath).Length
 
             $OldSize | Should Be $NewSize
@@ -88,13 +88,13 @@ InModuleScope "$ModuleName" {
             'Just some test content' | Set-Content -Path $TestInfoFilePath -Force
             $OldSize = (Get-Item -Path $TestInfoFilePath).Length
 
-            $NewDriverPackage = Move-OSDriverPackage -DriverPackage $OldDriverPackage -Destination $TargetPath -PassThru -Force
+            $NewDriverPackage = Copy-OSDriverPackage -DriverPackage $OldDriverPackage -Destination $TargetPath -PassThru -Force -All
             $NewSize = (Get-Item -Path $TestInfoFilePath).Length
 
             $OldSize | Should Not Be $NewSize
             $NewDriverPackage.DriverInfoFile | Should BeLike "$TargetPath*.json"
             Test-Path -Path $NewDriverPackage.DriverInfoFile | Should Be $true
-            Test-Path -Path $OldDriverPackage.DriverInfoFile | Should Be $false
+            Test-Path -Path $OldDriverPackage.DriverInfoFile | Should Be $true
         }
 
         AfterEach {

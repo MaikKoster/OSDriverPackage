@@ -48,9 +48,9 @@ function Move-OSDriverPackage {
 
     process {
         if ($PSCmdlet.ParameterSetName -eq 'ByPath') {
-            $script:Logger.Trace("Move  driver package ('Path':'$Path', 'Destination':'$Destination', 'Force':'$Force', 'OSD':'$OSD', 'Passthru':'$Passthru'")
+            $script:Logger.Trace("Move driver package ('Path':'$Path', 'Destination':'$Destination', 'Force':'$Force', 'OSD':'$OSD', 'Passthru':'$Passthru'")
         } else {
-            $script:Logger.Trace("Move  driver package ('DriverPackage':'$($DriverPackage.DefinitionFile)', 'Destination':'$Destination', 'Force':'$Force', 'OSD':'$OSD', 'Passthru':'$Passthru'")
+            $script:Logger.Trace("Move driver package ('DriverPackage':'$($DriverPackage.DefinitionFile)', 'Destination':'$Destination', 'Force':'$Force', 'OSD':'$OSD', 'Passthru':'$Passthru'")
         }
 
         # Get Driver Package
