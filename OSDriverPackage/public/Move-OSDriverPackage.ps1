@@ -8,59 +8,33 @@ function Move-OSDriverPackage {
     .NOTES
 
     #>
-    [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName='ByObject')]
+    [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName='ByDriverPackage')]
     param (
-        # Specifies the path to the Driver Package.
-        # If a folder is specified, all Driver Packages within that folder and subfolders
-        # will be returned, based on the additional conditions
-        [Parameter(Mandatory, Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName='ByName')]
-        [ValidateNotNullOrEmpty()]
-        [ValidateScript({Test-Path $_})]
-        [Alias("FullName")]
-        [string]$Path,
-
-        # Specifies the Driver Package.
-        [Parameter(Mandatory, Position=0, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName='ByObject')]
+        # Specifies the Driver Package, that should be moved.
+        [Parameter(Mandatory, ParameterSetName='ByDriverPackage', ValueFromPipeline)]
         [ValidateNotNullOrEmpty()]
         [PSCustomObject]$DriverPackage,
 
-        # Specifies the Destination to copy the Driver Packages to
+        # Specifies the name and path of Driver Package that should be moved.
+        [Parameter(Mandatory, Position=0, ValueFromPipelineByPropertyName, ParameterSetName='ByPath')]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({((Test-Path $_) -and ($_ -like '*.def'))})]
+        [Alias("FullName")]
+        [string]$Path,
+
+        # Specifies the Destination to move the Driver Packages to
         [Parameter(Mandatory, Position=1)]
         [ValidateNotNullOrEmpty()]
         [string]$Destination,
 
-        # Filters the Driver Packages by Name
-        # Wildcards are allowed e.g.
-        [string[]]$Name,
+        # Specifies if any existing file should be overwritten
+        [switch]$Force,
 
-        # Filters the Driver Packages by a generic tag.
-        # Can be used to .e.g identify specific Core Packages
-        [string[]]$Tag,
+        # Specifies if only OSD related content (Driver Definition file and Archive) should be moved
+        [switch]$OSD,
 
-        # Filters the Driver Packages by OSVersion
-        # Recommended to use tags as e.g. Win10-x64, Win7-x86.
-        # Wildcards are allowed e.g. Win*-x64
-        [string[]]$OSVersion,
-
-        # Filters the Driver Packages by Architecture
-        # Recommended to use tags as e.g. x64, x86.
-        [string[]]$Architecture,
-
-        # Filters the Driver Packages by Make(s)/Vendor(s)/Manufacture(s).
-        # Use values from Manufacturer property from Win32_ComputerSystem.
-        # Wildcards are allowed e.g. *Dell*
-        [string[]]$Make,
-
-        # Filters the Driver Packages by Model(s)
-        # Use values from Model property from Win32_ComputerSystem.
-        # Wildcards are allowed e.g. *Latitude*
-        [string[]]$Model,
-
-        # Specifies if all related files (Driver Info file, extracted content) should be copied as well
-        [switch]$All,
-
-        # Specifies if existing content should be overwritten
-        [switch]$Force
+        # Specifies, if the updated Driver Package should be returned.
+        [switch]$Passthru
 
     )
 
@@ -73,51 +47,76 @@ function Move-OSDriverPackage {
     }
 
     process {
-        if ($null -ne $DriverPackage) {
-            $script:Logger.Trace("Move driver package ('DriverPackage':'$($DriverPackage.DriverPackage)', 'Destination':'$Destination', 'Name':'$($Name -join ',')', 'Tag':'$($Tag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'Architecture':'$($Architecture -join ',')', 'Make':'$($Make -join ',')', 'Model':'$($Model -join ',')', 'All':'$All'")
-            $DriverPackages = ,$DriverPackage
+        if ($PSCmdlet.ParameterSetName -eq 'ByPath') {
+            $script:Logger.Trace("Move  driver package ('Path':'$Path', 'Destination':'$Destination', 'Force':'$Force', 'OSD':'$OSD', 'Passthru':'$Passthru'")
         } else {
-            $script:Logger.Trace("Move driver package ('Path':'$Path', 'Destination':'$Destination', 'Name':'$($Name -join ',')', 'Tag':'$($Tag -join ',')', 'OSVersion':'$($OSVersion -join ',')', 'Architecture':'$($Architecture -join ',')', 'Make':'$($Make -join ',')', 'Model':'$($Model -join ',')', 'All':'$All'")
-            $DriverPackages = Get-OSDriverPackage -Path $Path -Name $Name -OSVersion $OSVersion -Architecture $Architecture -Tag $Tag -Make $Make -Model $Model
+            $script:Logger.Trace("Move  driver package ('DriverPackage':'$($DriverPackage.DefinitionFile)', 'Destination':'$Destination', 'Force':'$Force', 'OSD':'$OSD', 'Passthru':'$Passthru'")
         }
 
-        Foreach ($DrvPkg in $DriverPackages){
-            if ((Split-Path -Path $DrvPkg.DriverPackage -Parent) -ne $Destination) {
+        # Get Driver Package
+        if ($null -eq $DriverPackage) {
+            $DriverPackage = Get-OSDriverPackage -Path $Path
+        }
+
+        # Ensure Driver package is valid
+        if (Test-OSDriverPackage -DriverPackage $DriverPackage) {
+            $script:Logger.Info("Moving driver package '$($DriverPackage.DefinitionFile)' to '$Destination'.")
+
+            if ((Split-Path -Path $DriverPackage.DefinitionFile -Parent) -ne $Destination) {
                 $MoveArgs = @{
                     Destination = $Destination
                     Force = $Force.IsPresent
                 }
 
-                # Archive
-                $DriverPackageName = $DrvPkg.DriverPackage
-                $script:Logger.Info("Moving driver package '$DriverPackageName' to '$Destination'.")
-                Move-Item @MoveArgs -Path $DriverPackageName
-
-                # Definition File
-                $DefinitionFile = $DrvPkg.DefinitionFile
+                # Move Definition File
+                $DefinitionFile = $DriverPackage.DefinitionFile
                 if (-Not(Test-Path $DefinitionFile)) {
                     $script:Logger.Warn("Definition File '$DefinitionFile' is missing. Creating stub file.")
                     New-OSDriverPackageDefinition -DriverPackagePath $DriverPackageName
                 }
-                $script:Logger.Info("Moving definition file '$DefinitionFile' to '$Destination'.")
+                $script:Logger.Debug("Moving driver package definition file '$DefinitionFile' to '$Destination'.")
                 Move-Item @MoveArgs -Path $DefinitionFile
 
-                if ($All.IsPresent) {
-                    # Info File
-                    $InfoFile = ($DrvPkg.DriverPackage -replace '.cab|.zip|.txt', '.json')
-                    $script:Logger.Info("Copying driver info file '$InfoFile' to '$Destination'.")
-                    Move-Item @MoveArgs -Path $InfoFile
+                # Move Archive if it exists
+                $DriverAchiveFile = $DriverPackage.DriverArchiveFile
+                if (Test-Path -Path $DriverAchiveFile) {
+                    $script:Logger.Debug("Moving driver archive file '$DriverAchiveFile' to '$Destination'.")
+                    Move-Item @MoveArgs -Path $DriverAchiveFile
+                } else {
+                    $script:Logger.Debug("Driver archive file '$DriverAchiveFile' is not present. Skipping move operation.")
+                }
 
-                    # Archive content
-                    $ExpandedContent = ($DrvPkg.DriverPackage -replace '.cab|.zip|.txt', '')
-                    if (Test-Path -Path $ExpandedContent) {
-                        $script:Logger.Info("Copying Driver contentfrom '$ExpandedContent' to '$Destination'.")
-                        Move-Item @MoveArgs -Path $ExpandedContent
+                if ($OSD.IsPresent) {
+                    $script:Logger.Debug("Skipping move operation for drivers and driver info file.")
+                } else {
+                    # Move Driver Info File
+                    $InfoFile = $DriverPackage.DriverInfoFile
+                    if (Test-Path -Path $InfoFile) {
+                        $script:Logger.Debug("Moving driver info file '$InfoFile' to '$Destination'.")
+                        Move-Item @MoveArgs -Path $InfoFile
+                    } else {
+                        $script:Logger.Debug("Driver info file '$InfoFile' is not present. Skipping move operation.")
+                    }
+
+                    # Move Drivers
+                    $DriverPath = $DriverPackage.DriverPath
+                    if (Test-Path -Path $DriverPath) {
+                        $script:Logger.Debug("Copying Drivers from '$DriverPath' to '$Destination'.")
+                        Move-Item @MoveArgs -Path $DriverPath
+                    } else {
+                        $script:Logger.Debug("Drivers at '$DriverAchiveFile' are not present. Skipping move operation.")
                     }
                 }
             } else {
-                $Script:Logger.Warn("Source path '$($DrvPkg.DriverPackage)' is the same as the destination path '$Destination'. Skipping move operation.")
+                $Script:Logger.Warn("Source path '$($DriverPackage.DefinitionFile)' is the same as the destination path '$Destination'. Skipping move operation.")
             }
+
+        } else {
+            $script:logger.Error("Driver Package '$($DriverPackage.DefinitionFile)' is not valid. Skipping move operation.")
+        }
+
+        if ($Passthru.IsPresent) {
+            Get-OSDriverPackage -Path (Join-Path -Path $Destination -ChildPath (Split-Path -Path $DefinitionFile -Leaf))
         }
     }
 }
