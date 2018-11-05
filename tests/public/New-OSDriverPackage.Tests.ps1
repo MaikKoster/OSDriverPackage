@@ -9,7 +9,7 @@ $ModuleName = 'OSDriverPackage'
 
 InModuleScope "$ModuleName" {
     Describe 'New-OSDriverPackage' {
-        $TestDriverSource = Get-Item -Path "$root\tests\Drivers\3T8M8"
+        $TestDriverSource = Get-Item -Path "$root\tests\Drivers\TestDriver_1.16.51.1"
 
         It 'Fails on missing data' {
             {New-OSDriverPackage -Path ''} | Should Throw
@@ -29,11 +29,11 @@ InModuleScope "$ModuleName" {
             Test-Path -Path $DriverPackage.DriverInfoFile | Should Be $true
             Test-Path -Path $DriverPackage.DriverArchiveFile | Should Be $true
             Test-Path -Path $DriverPackage.DriverPath | Should Be $false
-            $DriverPackage.DriverArchiveFile | Should BeLike "*\3T8M8.zip"
+            $DriverPackage.DriverArchiveFile | Should BeLike "*\TestDriver_1.16.51.1.zip"
             $DriverPackage.Drivers.Count | Should Be 2
             $DriverPackage.Definition | Should Not Be $null
             $DriverPackage.Definition.Count | Should Be 2
-            $DriverPackage.DriverPath | Should Be "$TestDrive\3T8M8"
+            $DriverPackage.DriverPath | Should Be "$TestDrive\TestDriver_1.16.51.1"
         }
 
         It 'Creates new Driver Package with cab archive' {
@@ -45,11 +45,11 @@ InModuleScope "$ModuleName" {
             Test-Path -Path $DriverPackage.DriverInfoFile | Should Be $true
             Test-Path -Path $DriverPackage.DriverArchiveFile | Should Be $true
             Test-Path -Path $DriverPackage.DriverPath | Should Be $false
-            $DriverPackage.DriverArchiveFile | Should BeLike "*\3T8M8.cab"
+            $DriverPackage.DriverArchiveFile | Should BeLike "*\TestDriver_1.16.51.1.cab"
             $DriverPackage.Drivers.Count | Should Be 2
             $DriverPackage.Definition | Should Not Be $null
             $DriverPackage.Definition.Count | Should Be 2
-            $DriverPackage.DriverPath | Should Be "$TestDrive\3T8M8"
+            $DriverPackage.DriverPath | Should Be "$TestDrive\TestDriver_1.16.51.1"
         }
 
 
@@ -62,11 +62,11 @@ InModuleScope "$ModuleName" {
             Test-Path -Path $DriverPackage.DriverInfoFile | Should Be $true
             Test-Path -Path $DriverPackage.DriverArchiveFile | Should Be $false
             Test-Path -Path $DriverPackage.DriverPath | Should Be $true
-            $DriverPackage.DriverArchiveFile | Should BeLike "*\3T8M8.zip"
+            $DriverPackage.DriverArchiveFile | Should BeLike "*\TestDriver_1.16.51.1.zip"
             $DriverPackage.Drivers.Count | Should Be 2
             $DriverPackage.Definition | Should Not Be $null
             $DriverPackage.Definition.Count | Should Be 2
-            $DriverPackage.DriverPath | Should Be "$TestDrive\3T8M8"
+            $DriverPackage.DriverPath | Should Be "$TestDrive\TestDriver_1.16.51.1"
         }
 
         It 'Create new Driver Package and keep original files' {
@@ -80,7 +80,7 @@ InModuleScope "$ModuleName" {
             $DriverPackage.Drivers.Count | Should Be 2
             $DriverPackage.Definition | Should Not Be $null
             $DriverPackage.Definition.Count | Should Be 2
-            $DriverPackage.DriverPath | Should Be "$TestDrive\3T8M8"
+            $DriverPackage.DriverPath | Should Be "$TestDrive\TestDriver_1.16.51.1"
             Test-Path -Path (Join-Path -Path $DriverPackage.DriverPath -ChildPath 'Driver_Win10\CleanMe.txt') | Should Be $true
         }
 

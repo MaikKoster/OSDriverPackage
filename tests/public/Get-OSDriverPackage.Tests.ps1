@@ -9,7 +9,7 @@ $ModuleName = 'OSDriverPackage'
 
 InModuleScope "$ModuleName" {
     Describe 'Get-OSDriverPackage' {
-        $TestDriver = Get-Item -Path "$root\tests\Drivers\3T8M8"
+        $TestDriver = Get-Item -Path "$root\tests\Drivers\TestDriver_1.16.51.1"
 
         It 'Fail on missing data' {
             {Get-OSDriverPackage -Path ''} | Should Throw
@@ -17,7 +17,7 @@ InModuleScope "$ModuleName" {
             {Get-OSDriverPackage -DriverPackage $null} | Should Throw
         }
 
-        It 'Get Driver files from path' {
+        It 'Get Driver Package from definition file' {
             Copy-Item -Path $TestDriver.FullName -Destination "TestDrive:\" -Force -PassThru -Recurse
 
             $Drivers = Get-OSDriverFile -Path "TestDrive:\$($TestDriver.BaseName)"

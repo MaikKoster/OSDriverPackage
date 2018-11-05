@@ -9,7 +9,7 @@ $ModuleName = 'OSDriverPackage'
 
 InModuleScope "$ModuleName" {
     Describe 'Get-FolderSize' {
-        $TestDriverSource = Get-Item -Path "$root\tests\Drivers\3T8M8"
+        $TestDriverSource = Get-Item -Path "$root\tests\Drivers\TestDriver_1.16.51.1"
 
         It 'Fails on missing data' {
             {Get-FolderSize -Path $null} | Should Throw

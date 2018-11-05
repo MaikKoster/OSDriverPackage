@@ -9,7 +9,7 @@ $ModuleName = 'OSDriverPackage'
 
 InModuleScope "$ModuleName" {
     Describe 'Expand-OSDriverPackage' {
-        $TestDriverSource = Get-Item -Path "$root\tests\Drivers\3T8M8"
+        $TestDriverSource = Get-Item -Path "$root\tests\Drivers\TestDriver_1.16.51.1"
 
         It 'Fails on missing data' {
             {Expand-OSDriverPackage -Path ''} | Should Throw
@@ -23,7 +23,7 @@ InModuleScope "$ModuleName" {
 
         It 'Expands a Driver Package' {
             $DriverPackage = New-OSDriverPackage -Path "$TestDrive\$($TestDriverSource.BaseName)"
-            $DriverPackage.DriverPath | Should BeLike "*\3T8M8"
+            $DriverPackage.DriverPath | Should BeLike "*\TestDriver_1.16.51.1"
             Test-Path -Path $DriverPackage.DriverPath | Should Be $false
             Test-Path -Path $DriverPackage.DriverArchiveFile | Should Be $true
 
@@ -36,7 +36,7 @@ InModuleScope "$ModuleName" {
             $DriverPackage = Expand-OSDriverPackage -Path ($DriverPackage.DefinitionFile) -Passthru -RemoveArchive
             Test-Path -Path $DriverPackage.DriverPath | Should Be $true
             Test-Path -Path $DriverPackage.DriverArchiveFile | Should Be $false
-            $DriverPackage.DriverPath | Should BeLike "*\3T8M8"
+            $DriverPackage.DriverPath | Should BeLike "*\TestDriver_1.16.51.1"
         }
 
         It 'Expands a zip file without a Driver Package' {
@@ -58,11 +58,11 @@ InModuleScope "$ModuleName" {
         #     Test-Path -Path $DriverPackage.DriverInfoFile | Should Be $true
         #     Test-Path -Path $DriverPackage.DriverArchiveFile | Should Be $true
         #     Test-Path -Path $DriverPackage.DriverPath | Should Be $false
-        #     $DriverPackage.DriverArchiveFile | Should BeLike "*\3T8M8.cab"
+        #     $DriverPackage.DriverArchiveFile | Should BeLike "*\TestDriver_1.16.51.1.cab"
         #     $DriverPackage.Drivers.Count | Should Be 2
         #     $DriverPackage.Definition | Should Not Be $null
         #     $DriverPackage.Definition.Count | Should Be 2
-        #     $DriverPackage.DriverPath | Should Be "$TestDrive\3T8M8"
+        #     $DriverPackage.DriverPath | Should Be "$TestDrive\TestDriver_1.16.51.1"
         # }
 
 
@@ -75,11 +75,11 @@ InModuleScope "$ModuleName" {
         #     Test-Path -Path $DriverPackage.DriverInfoFile | Should Be $true
         #     Test-Path -Path $DriverPackage.DriverArchiveFile | Should Be $false
         #     Test-Path -Path $DriverPackage.DriverPath | Should Be $true
-        #     $DriverPackage.DriverArchiveFile | Should BeLike "*\3T8M8.zip"
+        #     $DriverPackage.DriverArchiveFile | Should BeLike "*\TestDriver_1.16.51.1.zip"
         #     $DriverPackage.Drivers.Count | Should Be 2
         #     $DriverPackage.Definition | Should Not Be $null
         #     $DriverPackage.Definition.Count | Should Be 2
-        #     $DriverPackage.DriverPath | Should Be "$TestDrive\3T8M8"
+        #     $DriverPackage.DriverPath | Should Be "$TestDrive\TestDriver_1.16.51.1"
         # }
 
         # It 'Create new Driver Package and keep original files' {
@@ -93,7 +93,7 @@ InModuleScope "$ModuleName" {
         #     $DriverPackage.Drivers.Count | Should Be 2
         #     $DriverPackage.Definition | Should Not Be $null
         #     $DriverPackage.Definition.Count | Should Be 2
-        #     $DriverPackage.DriverPath | Should Be "$TestDrive\3T8M8"
+        #     $DriverPackage.DriverPath | Should Be "$TestDrive\TestDriver_1.16.51.1"
         #     Test-Path -Path (Join-Path -Path $DriverPackage.DriverPath -ChildPath 'Driver_Win10\CleanMe.txt') | Should Be $true
         # }
 
@@ -115,7 +115,7 @@ InModuleScope "$ModuleName" {
         # }
 
         AfterEach {
-            Remove-Item -Path TestDrive:\*.* -Recurse -Force
+            Get-ChildItem -Path $TestDrive | Remove-Item -Recurse -Force
         }
     }
 }

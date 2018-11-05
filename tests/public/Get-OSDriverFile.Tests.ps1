@@ -9,7 +9,7 @@ $ModuleName = 'OSDriverPackage'
 
 InModuleScope "$ModuleName" {
     Describe 'Get-OSDriverFile' {
-        $TestDriver = Get-Item -Path "$root\tests\Drivers\3T8M8"
+        $TestDriver = Get-Item -Path "$root\tests\Drivers\TestDriver_1.16.51.1"
 
         It 'Fail on missing data' {
             {Get-OSDriverFile -Path ''} | Should Throw

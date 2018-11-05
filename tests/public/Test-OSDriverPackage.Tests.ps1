@@ -9,14 +9,14 @@ $ModuleName = 'OSDriverPackage'
 
 InModuleScope "$ModuleName" {
     Describe 'Test-OSDriverPackage' {
-        $TestDriverSource = Get-Item -Path "$root\tests\Drivers\3T8M8"
+        $TestDriverSource = Get-Item -Path "$root\tests\Drivers\TestDriver_1.16.51.1"
         $TestDriverPackage = [PSCustomObject]@{
-            DriverPackage = "$TestDrive\3T8M8"
-            DefinitionFile = "$TestDrive\3T8M8.def"
+            DriverPackage = "$TestDrive\TestDriver_1.16.51.1"
+            DefinitionFile = "$TestDrive\TestDriver_1.16.51.1.def"
             Definition = $null
-            DriverInfoFile = "$TestDrive\3T8M8.json"
-            DriverArchiveFile = "$TestDrive\3T8M8.zip"
-            DriverPath = "$TestDrive\3T8M8"
+            DriverInfoFile = "$TestDrive\TestDriver_1.16.51.1.json"
+            DriverArchiveFile = "$TestDrive\TestDriver_1.16.51.1.zip"
+            DriverPath = "$TestDrive\TestDriver_1.16.51.1"
             Drivers = $null
         }
 
@@ -92,7 +92,7 @@ InModuleScope "$ModuleName" {
         }
 
         AfterEach {
-            Remove-Item -Path 'TestDrive:\*.*' -Recurse -Force
+            Get-ChildItem -Path $TestDrive | Remove-Item -Recurse -Force
         }
     }
 }

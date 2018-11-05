@@ -9,7 +9,7 @@ $ModuleName = 'OSDriverPackage'
 
 InModuleScope "$ModuleName" {
     Describe 'Copy-OSDriverPackage' {
-        $TestDriverSource = Get-Item -Path "$root\tests\Drivers\3T8M8"
+        $TestDriverSource = Get-Item -Path "$root\tests\Drivers\TestDriver_1.16.51.1"
         $TargetPath = Join-Path -Path $TestDrive -ChildPath 'CopyTarget'
 
         It 'Fails on missing data' {
