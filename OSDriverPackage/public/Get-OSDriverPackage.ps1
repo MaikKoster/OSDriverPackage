@@ -76,7 +76,7 @@ function Get-OSDriverPackage {
         # Add HardwareIDs and all compatible IDs into a Hashtable to speed up search
         $PnPIDs = @{}
         if ($HardwareIDs.Count -gt 0) {
-            $HardwareIDs | Get-CompatibleID | ForEach-Object {$PnPIDs[$_]=$null}
+            $HardwareIDs | Get-OSDriverCompatibleID | ForEach-Object {$PnPIDs[$_]=$null}
         }
 
         # Get SCCM/MDT Task Sequence environment
@@ -194,7 +194,7 @@ function Get-OSDriverPackage {
                             $script:Logger.Debug('Searching for Hardware IDs in driver package definition file.')
                             foreach ($PkgHardwareID in $PkgHardwareIDs.Keys) {
                                 # Get compatible Hardware IDs
-                                $CompatibleIDs = Get-CompatibleID -HardwareID $PkgHardwareID
+                                $CompatibleIDs = Get-OSDriverCompatibleID -HardwareID $PkgHardwareID
 
                                 foreach ($CompatibleID In $CompatibleIDs) {
                                     if ($PnPIDS.ContainsKey($CompatibleID)) {
@@ -247,6 +247,7 @@ function Get-OSDriverPackage {
                     DriverArchiveFile = $DriverPackageFilename
                     DriverPath = ($DriverPackageFilename -replace '.zip|.cab', '')
                     Drivers = @()
+                    DriverInfoFile = $InfoFileName
                 }
 
                 # Reading the drivers is a resource intensive task.

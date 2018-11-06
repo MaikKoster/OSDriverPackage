@@ -1,4 +1,4 @@
-function Get-CompatibleID {
+function Get-OSDriverCompatibleID {
     [CmdLetBinding()]
     [Outputtype([string])]
     param(

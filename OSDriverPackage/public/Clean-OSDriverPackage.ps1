@@ -81,7 +81,7 @@ Function Clean-OSDriverPackage {
 
         # Validate Driver Package
         if (Test-OSDriverPackage -DriverPackage $DriverPackage) {
-            if (Test-Path -Path $DriverPackage.DriverPath -or Test-Path -Path $DriverPackage.DriverArchiveFile) {
+            if ((Test-Path -Path $DriverPackage.DriverPath) -or (Test-Path -Path $DriverPackage.DriverArchiveFile)) {
                 # Get statistical info about the old archive if available
                 if (Test-Path -Path $DriverPackage.DriverArchiveFile) {
                     $OldArchive = Get-Item -Path ($DriverPackage.DriverArchiveFile)
@@ -258,7 +258,7 @@ Function Clean-OSDriverPackage {
                                 # Create new archive, if there have been some changes
                                 $NewArchiveSize = $OldArchiveSize
                                 if (-Not($NoArchive.IsPresent)) {
-                                    if ((-Not(Test-Path -Path $DriverPackage.DriverPackage)) -or ($OldFolderSize.Dirs -ne $NewFolderSize.Dirs) -or ($OldFolderSize.Files -ne $NewFolderSize.Files) -or ($OldFolderSize.Bytes -ne $NewFolderSize.Bytes)) {
+                                    if ((-Not(Test-Path -Path $DriverPackage.DriverArchiveFile)) -or ($OldFolderSize.Dirs -ne $NewFolderSize.Dirs) -or ($OldFolderSize.Files -ne $NewFolderSize.Files) -or ($OldFolderSize.Bytes -ne $NewFolderSize.Bytes)) {
                                         Compress-OSDriverPackage -DriverPackage $DriverPackage -Force -RemoveFolder:($Expanded -and (-Not($KeepFolder.IsPresent)))
                                         $NewArchiveSize = (Get-Item $DriverPackage.DriverArchiveFile).Length
                                     }
