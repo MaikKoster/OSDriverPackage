@@ -62,22 +62,29 @@ Function Clean-OSDriverPackage {
 
     begin {
         # Ensure drivers are loaded
-        if ($null -ne $CoreDriverPackage) {
-            if ($null -eq $CoreDriverPackage.Drivers) {
-                # Need to properly handle the automated unboxing of PowerShell
-                $Drivers = Get-OSDriver -Path ($CoreDriverPackage.DriverPackage -replace '.cab|.zip|.def', '.json')
-                if ($Drivers.Count -eq 1) {
-                    $CoreDriverPackage.Drivers = ,$Drivers
-                } else {
-                    $CoreDriverPackage.Drivers = $Drivers
+        foreach ($CDP in $CoreDriverPackage) {
+            if ($null -ne $CDP) {
+                if ($null -eq $CDP.Drivers) {
+                    # Need to properly handle the automated unboxing of PowerShell
+                    if (-Not(Test-Path -Path $CDP.DriverInfoFile)) {
+                        Read-OSDriverPackage -DriverPackage $CDP
+                    } else {
+                        $Drivers = Get-OSDriver -Path ($CDP.DriverInfoFile)
+
+                        if ($Drivers.Count -eq 1) {
+                            $CDP.Drivers = ,$Drivers
+                        } else {
+                            $CDP.Drivers = $Drivers
+                        }
+                    }
                 }
             }
         }
     }
 
     process {
-        $script:Logger.Trace("Cleanup driver package ('DriverPackage':'$($DriverPackage.DriverPackage)'")
-        $script:Logger.Info("Cleanup driver package '$($DriverPackage.DriverPackage)'.")
+        $script:Logger.Trace("Cleanup driver package ('DriverPackage':'$($DriverPackage.DefinitionFile)'")
+        $script:Logger.Info("Cleanup driver package '$($DriverPackage.DefinitionFile)'.")
 
         # Validate Driver Package
         if (Test-OSDriverPackage -DriverPackage $DriverPackage) {
@@ -96,11 +103,15 @@ Function Clean-OSDriverPackage {
 
                 # Ensure drivers are loaded
                 if ($null -eq $DriverPackage.Drivers) {
-                    $Drivers = Get-OSDriver -Path ($DriverPackage.DriverInfoFile)
-                    if ($Drivers.Count -eq 1) {
-                        $DriverPackage.Drivers = ,$Drivers
+                    if (-Not(Test-Path -Path $DriverPackage.DriverInfoFile)) {
+                        Read-OSDriverPackage -DriverPackage $DriverPackage
                     } else {
-                        $DriverPackage.Drivers = $Drivers
+                        $Drivers = Get-OSDriver -Path ($DriverPackage.DriverInfoFile)
+                        if ($Drivers.Count -eq 1) {
+                            $DriverPackage.Drivers = ,$Drivers
+                        } else {
+                            $DriverPackage.Drivers = $Drivers
+                        }
                     }
                 }
                 $OldDriverCount = $DriverPackage.Drivers.Count
@@ -142,10 +153,10 @@ Function Clean-OSDriverPackage {
                             $script:Logger.Info("All drivers from the package can be removed. Removing Driver Package and related files.")
 
                             # Remove related files
-                            Remove-Item -Path ($DriverPackage.DriverPackage -replace '.cab|.zip|.def', '') -Recurse -Force -ErrorAction SilentlyContinue
-                            Remove-Item -Path ($DriverPackage.DriverPackage) -Force -ErrorAction SilentlyContinue
+                            Remove-Item -Path ($DriverPackage.DriverPath) -Recurse -Force -ErrorAction SilentlyContinue
+                            Remove-Item -Path ($DriverPackage.DriverArchiveFile) -Force -ErrorAction SilentlyContinue
                             Remove-Item -Path ($DriverPackage.DefinitionFile) -Force -ErrorAction SilentlyContinue
-                            Remove-Item -Path ($DriverPackage.DriverPackage -replace '.cab|.zip|.def', '.json' ) -Force -ErrorAction SilentlyContinue
+                            Remove-Item -Path ($DriverPackage.DriverInfoFile) -Force -ErrorAction SilentlyContinue
                             $NewFolderSize = @{
                                 Dirs=0
                                 Files=0
@@ -153,7 +164,12 @@ Function Clean-OSDriverPackage {
                             }
                             $NewArchiveSize = 0
                             $NewDriverCount = 0
-
+                            $DriverPackage.DriverPath = ''
+                            $DriverPackage.Drivers = $null
+                            $DriverPackage.DefinitionFile = ''
+                            $DriverPackage.Definition = $null
+                            $DriverPackage.DriverArchiveFile = ''
+                            $DriverPackage.DriverInfoFile = ''
                         } else {
                             $Expanded = $false
                             # Expand content if necessary
@@ -194,6 +210,7 @@ Function Clean-OSDriverPackage {
                                 $script:Logger.Info("All drivers have been removed from Driver package. Removing Driver Package and related files.")
                                 # Remove related files
                                 Remove-Item -Path ($DriverPackage.DriverArchiveFile) -Force -ErrorAction SilentlyContinue
+                                Remove-Item -Path ($DriverPackage.DriverPath) -Force -ErrorAction SilentlyContinue
                                 Remove-Item -Path ($DriverPackage.DefinitionFile) -Force
                                 Remove-Item -Path ($DriverPackage.DriverInfoFile) -Force
                                 $NewFolderSize = @{
@@ -203,6 +220,12 @@ Function Clean-OSDriverPackage {
                                 }
                                 $NewArchiveSize = 0
                                 $NewDriverCount = 0
+                                $DriverPackage.DriverPath = ''
+                                $DriverPackage.Drivers = $null
+                                $DriverPackage.DefinitionFile = ''
+                                $DriverPackage.Definition = $null
+                                $DriverPackage.DriverArchiveFile = ''
+                                $DriverPackage.DriverInfoFile = ''
                             } else {
                                 if ($RemoveResults.Count -gt 0) {
                                     # Update Driver Package Info file
@@ -269,7 +292,7 @@ Function Clean-OSDriverPackage {
                         }
 
                         $Result = [PSCustomObject]@{
-                            DriverPackage = $DriverPackage.DriverPackage
+                            DriverPackage = $DriverPackage.DefinitionFile
                             OldArchiveSize = $OldArchiveSize
                             NewArchiveSize = $NewArchiveSize
                             OldFolderSize = $OldFolderSize
@@ -282,7 +305,7 @@ Function Clean-OSDriverPackage {
                     } else {
                         $script:Logger.Info("Compared $($DriverPackage.Drivers.Count) Drivers, none can be removed.")
                         $Result = [PSCustomObject]@{
-                            DriverPackage = $DriverPackage.DriverPackage
+                            DriverPackage = $DriverPackage.DefinitionFile
                             OldArchiveSize = $OldArchiveSize
                             NewArchiveSize = $OldArchiveSize
                             OldFolderSize = $OldFolderSize
@@ -294,15 +317,15 @@ Function Clean-OSDriverPackage {
                         }
                     }
                 } else {
-                    $script:Logger.Error("No drivers found in Driver Package '$($DriverPackage.DriverPackage)' found. Skipping further processing.")
+                    $script:Logger.Error("No drivers found in Driver Package '$($DriverPackage.DefinitionFile)' found. Skipping further processing.")
                 }
 
             } else {
-                $script:Logger.Error("No driver content for Driver Package '$($DriverPackage.DriverPackage)' found. Skipping further processing.")
+                $script:Logger.Error("No driver content for Driver Package '$($DriverPackage.DefinitionFile)' found. Skipping further processing.")
             }
 
         } else {
-            $script:logger.Error("Invalid Driver Package '$($DriverPackage.DriverPackage)'. Skipping further processing.")
+            $script:logger.Error("Invalid Driver Package '$($DriverPackage.DefinitionFile)'. Skipping further processing.")
         }
 
         $script:Logger.Info(($Result | Out-String))

@@ -61,7 +61,7 @@ Function Compare-OSDriverPackage {
 
         # Ensure drivers are loaded
         if ($null -eq $DriverPackage.Drivers) {
-            $Drivers = Get-OSDriver -Path ($DriverPackage.DriverPackage -replace '.cab|.zip|.txt', '.json')
+            $Drivers = Get-OSDriver -Path ($DriverPackage.DefinitionFile)
             if ($Drivers.Count -eq 1) {
                 $DriverPackage.Drivers = ,$Drivers
             } else {
@@ -103,17 +103,15 @@ Function Compare-OSDriverPackage {
     }
 
     process {
-
-
         foreach ($CorePkg in $CoreDriverPackage){
             $script:Logger.Trace("Compare driver package ('CoreDriverPackage':'$($CorePkg | ConvertTo-Json -Depth 1)'")
-            $script:Logger.Info("Comparing driver package '$($DriverPackage.DriverPackage)' with '$($CorePkg.DriverPackage)'")
+            $script:Logger.Info("Comparing driver package '$($DriverPackage.DefinitionFile)' with '$($CorePkg.DefinitionFile)'")
 
-            $script:Logger.Debug("Core Driver Package : $($CorePkg.DriverPackage)")
+            $script:Logger.Debug("Core Driver Package : $($CorePkg.DefinitionFile)")
 
             # Ensure drivers are loaded
             if ($null -eq $CorePkg.Drivers) {
-                $Drivers = Get-OSDriver -Path ($CorePkg.DriverPackage -replace '.cab|.zip|.txt', '.json')
+                $Drivers = Get-OSDriver -Path ($CorePkg.DefinitionFile)
                 if ($Drivers.Count -eq 1) {
                     $CorePkg.Drivers = ,$Drivers
                 } else {

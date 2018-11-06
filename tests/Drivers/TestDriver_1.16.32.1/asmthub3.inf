@@ -30,16 +30,7 @@ CatalogFile=asmthub3.cat
 [SourceDisksNames.amd64]
 1=%DiskKey%,"asmthub3.sys",,\amd64
 
-[SourceDisksNames.ia64]
-1=%DiskKey%,"asmthub3.sys",,\ia64
-
-[SourceDisksFiles.x86]
-asmthub3.sys=1
-
 [SourceDisksFiles.amd64]
-asmthub3.sys=1
-
-[SourceDisksFiles.ia64]
 asmthub3.sys=1
 
 [DestinationDirs]
@@ -49,16 +40,10 @@ DefaultDestDir = 12
 ExcludeFromSelect = *
 
 [Manufacturer]
-%Hub.MFG%=Hub, ntx86, ntamd64, ntia64
-%RootHub.MFG%=RootHub, ntx86, ntamd64, ntia64
+%Hub.MFG%=Hub,  ntamd64
+%RootHub.MFG%=RootHub, ntamd64
 
 [Hub.ntamd64]
-%Hub_Product_2%=Hub_Product2_Install,USB\ASMEDIAUSBD_Hub
-
-[Hub.ntia64]
-%Hub_Product_2%=Hub_Product2_Install,USB\ASMEDIAUSBD_Hub
-
-[Hub.ntx86]
 %Hub_Product_2%=Hub_Product2_Install,USB\ASMEDIAUSBD_Hub
 
 [Hub_Product2_Install.ntamd64]
@@ -71,33 +56,7 @@ AddReg=asmthub3.ProductDeviceInterfaceGuids
 [Hub_Product2_Install.ntamd64.services]
 AddService=asmthub3,0x00000002,asmthub3_service
 
-[Hub_Product2_Install.ntia64]
-FeatureScore=80
-CopyFiles=asmthub3.CopyFiles.ia64
-DriverVer=01/21/2016, 1.16.32.1
-AddReg=asmthub3.DeviceInterfaceGuids
-AddReg=asmthub3.ProductDeviceInterfaceGuids
-
-[Hub_Product2_Install.ntia64.services]
-AddService=asmthub3,0x00000002,asmthub3_service
-
-[Hub_Product2_Install.ntx86]
-FeatureScore=80
-CopyFiles=asmthub3.CopyFiles.x86
-DriverVer=01/21/2016, 1.16.32.1
-AddReg=asmthub3.DeviceInterfaceGuids
-AddReg=asmthub3.ProductDeviceInterfaceGuids
-
-[Hub_Product2_Install.ntx86.services]
-AddService=asmthub3,0x00000002,asmthub3_service
-
 [RootHub.ntamd64]
-%RootHub_Product_1%=RootHub_Product1_Install,USB\ASMEDIAUSBD_Hub&VER_0001001600320001
-
-[RootHub.ntia64]
-%RootHub_Product_1%=RootHub_Product1_Install,USB\ASMEDIAUSBD_Hub&VER_0001001600320001
-
-[RootHub.ntx86]
 %RootHub_Product_1%=RootHub_Product1_Install,USB\ASMEDIAUSBD_Hub&VER_0001001600320001
 
 [RootHub_Product1_Install.AddReg]
@@ -115,35 +74,7 @@ AddReg=asmthub3.ProductDeviceInterfaceGuids
 [RootHub_Product1_Install.ntamd64.services]
 AddService=asmthub3,0x00000002,asmthub3_service
 
-[RootHub_Product1_Install.ntia64]
-FeatureScore=80
-CopyFiles=asmthub3.CopyFiles.ia64
-DriverVer=01/21/2016, 1.16.32.1
-AddReg=RootHub_Product1_Install.AddReg
-AddReg=asmthub3.DeviceInterfaceGuids
-AddReg=asmthub3.ProductDeviceInterfaceGuids
-
-[RootHub_Product1_Install.ntia64.services]
-AddService=asmthub3,0x00000002,asmthub3_service
-
-[RootHub_Product1_Install.ntx86]
-FeatureScore=80
-CopyFiles=asmthub3.CopyFiles.x86
-DriverVer=01/21/2016, 1.16.32.1
-AddReg=RootHub_Product1_Install.AddReg
-AddReg=asmthub3.DeviceInterfaceGuids
-AddReg=asmthub3.ProductDeviceInterfaceGuids
-
-[RootHub_Product1_Install.ntx86.services]
-AddService=asmthub3,0x00000002,asmthub3_service
-
 [asmthub3.CopyFiles.amd64]
-asmthub3.sys
-
-[asmthub3.CopyFiles.ia64]
-asmthub3.sys
-
-[asmthub3.CopyFiles.x86]
 asmthub3.sys
 
 [asmthub3.DeviceInterfaceGuids]
